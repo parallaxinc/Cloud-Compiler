@@ -4,7 +4,8 @@ __author__ = 'Michel'
 
 import os
 import subprocess
-from tempfile import NamedTemporaryFile
+import shutil
+from tempfile import NamedTemporaryFile, mkdtemp
 
 
 class SpinCompiler:
@@ -20,20 +21,27 @@ class SpinCompiler:
 
         self.appdir = os.getcwd()
 
-    def simple_compile(self, action, code):
-        spin_file = NamedTemporaryFile(mode='w', suffix='.spin', delete=False)
+    def compile(self, action, source_files, app_filename):
+        spin_source_directory = mkdtemp()
+      #  spin_file = NamedTemporaryFile(mode='w', suffix='.spin', delete=False)
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
-        spin_file.write(code)
-        spin_file.close()
+      #  spin_file.write(source_files["single.spin"])
+      #  spin_file.close()
         binary_file.close()
 
+        for filename in source_files:
+            with open(spin_source_directory + "/" + filename, mode='w') as source_file:
+                source_file.write(source_files[filename])
+
+       # print("Spin source directory: " + spin_source_directory)
+
         executable = self.appdir + self.compiler_executable
-        print(executable)
-        lib_directory = self.appdir + "/propeller-lib"
+
+        lib_directory = self.appdir + "/propeller-spin-lib"
 
         executing_data = [executable, "-o", binary_file.name, "-L", lib_directory]
         executing_data.extend(self.compile_actions[action]["compile-options"])
-        executing_data.append(spin_file.name)
+        executing_data.append(spin_source_directory + "/" + app_filename)
 
         process = subprocess.Popen(executing_data, stdout=subprocess.PIPE)
 
@@ -44,10 +52,15 @@ class SpinCompiler:
         else:
             success = False
 
-        os.remove(spin_file.name)
+      #  os.remove(spin_file.name)
+      #  os.removedirs(spin_source_directory)
+        shutil.rmtree(spin_source_directory)
+
+        base64binary = ''
+
         if self.compile_actions[action]["return-binary"]:
             with open(binary_file.name) as bf:
-                base64binary = base64.b32encode(bf.readall())
+                base64binary = base64.b32encode(bf.read())
 
         os.remove(binary_file.name)
 
