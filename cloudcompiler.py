@@ -4,7 +4,7 @@ import json
 from flask import Flask, Response, request
 
 from SpinCompiler import SpinCompiler
-#from PropCCompiler import PropCCompiler
+from PropCCompiler import PropCCompiler
 
 app = Flask(__name__)
 
@@ -79,10 +79,10 @@ def handle(action, language, source_files, app_filename):
 
 compiler = {
     "SPIN": {"compiler": SpinCompiler(), "single-app-filename": "single.spin"},
-#    "prop-c": {"compiler": PropCCompiler(), "single-app-filename": "single.c"}
+    "PROP-C": {"compiler": PropCCompiler(), "single-app-filename": "single.c"}
 }
 
-actions = ["COMPILE", "RAM", "EEPROM"]
+actions = ["COMPILE", "BIN", "EEPROM"]
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

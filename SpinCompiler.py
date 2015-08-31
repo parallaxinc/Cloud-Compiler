@@ -15,7 +15,7 @@ class SpinCompiler:
 
         self.compile_actions = {
             "COMPILE": {"compile-options": ["-b"], "extension":".binary", "return-binary": False},
-            "RAM": {"compile-options": ["-b"], "extension":".binary", "return-binary": True},
+            "BIN": {"compile-options": ["-b"], "extension":".binary", "return-binary": True},
             "EEPROM": {"compile-options": ["-e"], "extension":".eeprom", "return-binary": True}
         }
 
