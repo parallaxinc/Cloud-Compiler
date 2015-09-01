@@ -6,6 +6,7 @@ import os
 import subprocess
 import shutil
 from tempfile import NamedTemporaryFile, mkdtemp
+from werkzeug.datastructures import FileStorage
 
 
 class SpinCompiler:
@@ -23,17 +24,15 @@ class SpinCompiler:
 
     def compile(self, action, source_files, app_filename):
         spin_source_directory = mkdtemp()
-      #  spin_file = NamedTemporaryFile(mode='w', suffix='.spin', delete=False)
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
-      #  spin_file.write(source_files["single.spin"])
-      #  spin_file.close()
         binary_file.close()
 
         for filename in source_files:
             with open(spin_source_directory + "/" + filename, mode='w') as source_file:
-                source_file.write(source_files[filename])
-
-       # print("Spin source directory: " + spin_source_directory)
+                if isinstance(source_files[filename], basestring):
+                    source_file.write(source_files[filename])
+                elif isinstance(source_files[filename], FileStorage):
+                    source_file.write(source_files[filename].stream.read())
 
         executable = self.appdir + self.compiler_executable
 
@@ -52,8 +51,6 @@ class SpinCompiler:
         else:
             success = False
 
-      #  os.remove(spin_file.name)
-      #  os.removedirs(spin_source_directory)
         shutil.rmtree(spin_source_directory)
 
         base64binary = ''
