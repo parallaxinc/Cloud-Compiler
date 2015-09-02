@@ -1,13 +1,14 @@
 import base64
 import shutil
-
-__author__ = 'Michel'
+from werkzeug.datastructures import FileStorage
 
 import os
 import json
 import subprocess
 import re
 from tempfile import NamedTemporaryFile, mkdtemp
+
+__author__ = 'Michel'
 
 
 class PropCCompiler:
@@ -21,18 +22,58 @@ class PropCCompiler:
             "EEPROM": {"compile-options": [], "extension":".elf", "return-binary": True}
         }
 
-        self.appdir = os.getcwd()
+        self.lib_descriptor = json.load(open(self.appdir + "/propeller-c-lib/lib-descriptor.json"))
+
+        #self.appdir = os.getcwd()
 
     def compile(self, action, source_files, app_filename):
         c_source_directory = mkdtemp()
+
+        c_file_data = {}
+        h_file_data = {}
+
+        # Write all files to working directory
+        for filename in source_files:
+            if filename.endswith(".h"):
+                with open(c_source_directory + "/" + filename, mode='w') as header_file:
+                    if isinstance(source_files[filename], basestring):
+                        file_content = source_files[filename]
+                    elif isinstance(source_files[filename], FileStorage):
+                        file_content = source_files[filename].stream.read()
+
+                    header_file.write(file_content)
+
+        for filename in source_files:
+            if filename.endswith(".c"):
+                with open(c_source_directory + "/" + filename, mode='w') as source_file:
+                    if isinstance(source_files[filename], basestring):
+                        file_content = source_files[filename]
+                    elif isinstance(source_files[filename], FileStorage):
+                        file_content = source_files[filename].stream.read()
+
+                    source_file.write(file_content)
+
+                c_file_data[filename] = self.parse_includes(file_content)
+            elif filename.endswith(".h"):
+                h_file_data[filename] = {}
+
+        # determine order
+        # Precompile libraries
+
+        shutil.rmtree(c_source_directory)
+
+
+    def compile_lib(self, source_file, app_filename, libraries):
+        pass
+
+    def compile_binary(self, action, c_source_directory, source_file_code, app_filename, libraries):
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
         binary_file.close()
 
-        for filename in source_files:
-            with open(c_source_directory + "/" + filename, mode='w') as source_file:
-                source_file.write(source_files[filename])
+        for library in libraries:
+            pass
 
-        includes = self.parse_includes(source_files)  # parse includes
+        includes = self.parse_includes(source_file_code)  # parse includes
         descriptors = self.get_includes(includes)  # get lib descriptors for includes
         executing_data = self.create_executing_data(c_source_directory + "/" + app_filename, binary_file, descriptors)  # build execution command
 
@@ -51,8 +92,6 @@ class PropCCompiler:
             err = "Compiler not found\n"
             success = False
 
-        shutil.rmtree(c_source_directory)
-
         base64binary = ''
 
         if self.compile_actions[action]["return-binary"]:
@@ -64,25 +103,26 @@ class PropCCompiler:
         return (success, base64binary, out, err)
 
     def get_includes(self, includes):
-        lib_descriptor = json.load(open(self.appdir + "/propeller-c-lib/lib-descriptor.json"))
+
 
         descriptors = []
         for include in includes:
-            for descriptor in lib_descriptor:
+            # First: look into files
+
+            # If not found: look in libraries
+            for descriptor in self.lib_descriptor:
                 if include in descriptor['include']:
                     descriptors.append(descriptor)
         return descriptors
 
-    def parse_includes(self, source_files):
+    def parse_includes(self, source_file):
         includes = set()
 
-        for file_name in source_files:
-            c_file = source_files[file_name]
-            for line in c_file.splitlines():
-                if '#include' in line:
-                    match = re.match(r'^#include "(\w+).h"', line)
-                    if match:
-                        includes.add(match.group(1))
+        for line in source_file.splitlines():
+            if '#include' in line:
+                match = re.match(r'^#include "(\w+).h"', line)
+                if match:
+                    includes.add(match.group(1))
 
         return includes
 
