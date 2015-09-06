@@ -3,7 +3,6 @@ import shutil
 from werkzeug.datastructures import FileStorage
 
 import os
-import json
 import subprocess
 import re
 from tempfile import NamedTemporaryFile, mkdtemp
@@ -93,16 +92,28 @@ class PropCCompiler:
         else:
             compiler_output += "Library compile order: %s\n" % ', '.join(library_order)
 
+        success = True
         # Precompile libraries
         for library in library_order:
             compiler_output += "Compiling: %s\n" % library
-            pass
+            (lib_success, lib_out, lib_err) = self.compile_lib(source_directory, library + '.c', library + '.o', external_libraries_info)
+            if lib_success:
+                compiler_output += lib_out + '\n'
+            else:
+                compiler_output += lib_err + '\n'
+                success = False
 
-        # Compile binary
+        base64binary = None
+        if success:
+            # Compile binary
+            (bin_success, base64binary, out, err) = self.compile_binary(source_directory, action, app_filename, library_order, external_libraries_info)
+            compiler_output += out
+            if not bin_success:
+                success = False
 
         shutil.rmtree(source_directory)
 
-        return (False, None, compiler_output, '')
+        return (success, base64binary, compiler_output, err)
 
     def determine_order(self, header_file, library_order, external_libraries, header_files, c_files):
         if header_file not in library_order:
@@ -145,22 +156,38 @@ class PropCCompiler:
         else:
             return (False, 'Library %s not found' % library)
 
-    def compile_lib(self, source_file, app_filename, libraries):
-        pass
+    def compile_lib(self, working_directory, source_file, target_filename, libraries):
+        print('%s -> Compiling %s into %s' % (working_directory, source_file, target_filename))
 
-    def compile_binary(self, action, c_source_directory, source_file_code, app_filename, libraries):
+        executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
+        print(' '.join(executing_data))
+
+        try:
+            process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
+
+            out, err = process.communicate()
+
+            if process.returncode == 0 and (err is None or len(err) == 0):
+                out = "Compile successful\n"
+                success = True
+            else:
+                success = False
+        except OSError:
+            out = ""
+            err = "Compiler not found\n"
+            success = False
+
+        return (success, out, err)
+
+    def compile_binary(self, working_directory, action, source_file, binaries, libraries):
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
         binary_file.close()
 
-        for library in libraries:
-            pass
-
-        includes = self.parse_includes(source_file_code)  # parse includes
-        descriptors = self.get_includes(includes)  # get lib descriptors for includes
-        executing_data = self.create_executing_data(c_source_directory + "/" + app_filename, binary_file, descriptors)  # build execution command
+        executing_data = self.create_executing_data(source_file, binary_file.name, binaries, libraries)  # build execution command
+        print(' '.join(executing_data))
 
         try:
-            process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # call compile
+            process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
 
             out, err = process.communicate()
 
@@ -176,11 +203,12 @@ class PropCCompiler:
 
         base64binary = ''
 
-        if self.compile_actions[action]["return-binary"]:
+        if success and self.compile_actions[action]["return-binary"]:
             with open(binary_file.name) as bf:
                 base64binary = base64.b32encode(bf.read())
 
-        os.remove(binary_file.name)
+        if success:
+            os.remove(binary_file.name)
 
         return (success, base64binary, out, err)
 
@@ -195,29 +223,59 @@ class PropCCompiler:
 
         return includes
 
-    def create_executing_data(self, main_c_file_name, binary_file, descriptors):
+    def create_lib_executing_data(self, lib_c_file_name, binary_file, descriptors):
         executable = self.compiler_executable
 
-        lib_directory = self.appdir + "/propeller-c-lib/"
-
         executing_data = [executable]
+        executing_data.append("-I")
+        executing_data.append(".")
+        executing_data.append("-L")
+        executing_data.append(".")
         for descriptor in descriptors:
             executing_data.append("-I")
-            executing_data.append(lib_directory + descriptor["libdir"])
+            executing_data.append(descriptors[descriptor]["path"])
             executing_data.append("-L")
-            executing_data.append(lib_directory + descriptor["memorymodel"]["cmm"])
+            executing_data.append(descriptors[descriptor]["path"] + '/cmm/')
+        executing_data.append("-Os")
+        executing_data.append("-mcmm")
+        executing_data.append("-m32bit-doubles")
+        executing_data.append("-std=c99")
+        executing_data.append("-c")
+        executing_data.append(lib_c_file_name)
+        executing_data.append("-o")
+        executing_data.append(binary_file)
+
+        return executing_data
+
+    def create_executing_data(self, main_c_file_name, binary_file, binaries, descriptors):
+        executable = self.compiler_executable
+
+        executing_data = [executable]
+        executing_data.append("-I")
+        executing_data.append(".")
+        executing_data.append("-L")
+        executing_data.append(".")
+        for descriptor in descriptors:
+            executing_data.append("-I")
+            executing_data.append(descriptors[descriptor]["path"])
+            executing_data.append("-L")
+            executing_data.append(descriptors[descriptor]["path"] + '/cmm/')
         executing_data.append("-Os")
         executing_data.append("-mcmm")
         executing_data.append("-m32bit-doubles")
         executing_data.append("-std=c99")
         executing_data.append("-o")
-        executing_data.append(binary_file.name)
+        executing_data.append(binary_file)
+        for binary in binaries:
+            executing_data.append(binary + ".o")
         executing_data.append(main_c_file_name)
         executing_data.append("-lm")
-        while len(descriptors) > 0:
-            for descriptor in descriptors:
-                executing_data.append("-l" + descriptor["name"])
+
+        libraries = descriptors.keys()
+        while len(libraries) > 0:
+            for library in libraries:
+                executing_data.append("-l" + library)
             executing_data.append("-lm")
-            del descriptors[-1]
+            del libraries[-1]
 
         return executing_data
