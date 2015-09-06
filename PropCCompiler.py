@@ -23,7 +23,6 @@ class PropCCompiler:
         }
 
         self.appdir = os.getcwd()
-        self.lib_descriptor = json.load(open(self.appdir + "/propeller-c-lib/lib-descriptor.json"))
 
     def compile(self, action, source_files, app_filename):
         source_directory = mkdtemp()
@@ -184,17 +183,6 @@ class PropCCompiler:
         os.remove(binary_file.name)
 
         return (success, base64binary, out, err)
-
-    def get_includes(self, includes):
-        descriptors = []
-        for include in includes:
-            # First: look into files
-
-            # If not found: look in libraries
-            for descriptor in self.lib_descriptor:
-                if include in descriptor['include']:
-                    descriptors.append(descriptor)
-        return descriptors
 
     def parse_includes(self, source_file):
         includes = set()
