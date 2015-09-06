@@ -75,25 +75,31 @@ class PropCCompiler:
         library_order = []
         external_libraries = []
 
-        # determine order
+
+        # determine order and direct library dependencies
         for include in c_file_data[app_filename]['includes']:
             self.determine_order(include, library_order, external_libraries, h_file_data, c_file_data)
 
-        print(library_order)
+        # determine library dependencies
+        external_libraries_info = {}
+        for library in external_libraries:
+            self.find_dependencies(library, external_libraries_info)
+
         if len(external_libraries) == 0:
-            #print("Required libraries: None")
             compiler_output += "Required libraries: None\n"
         else:
-            #print("Required libraries: %s" % ', '.join(external_libraries))
             compiler_output += "Required libraries: %s\n" % ', '.join(external_libraries)
         if len(library_order) == 0:
-            #print("Required libraries: None")
-            library_order += "Library compile order: None needed\n"
+            compiler_output += "Library compile order: None needed\n"
         else:
-            #print("Required libraries: %s" % ', '.join(external_libraries))
             compiler_output += "Library compile order: %s\n" % ', '.join(library_order)
 
         # Precompile libraries
+        for library in library_order:
+            compiler_output += "Compiling: %s\n" % library
+            pass
+
+        # Compile binary
 
         shutil.rmtree(source_directory)
 
@@ -101,16 +107,44 @@ class PropCCompiler:
 
     def determine_order(self, header_file, library_order, external_libraries, header_files, c_files):
         if header_file not in library_order:
-            print("Header file: " + header_file)
             if header_file + '.h' in header_files:
                 includes = c_files[header_files[header_file + '.h']['c_filename']]['includes']
-                print("%s includes: %s" % (header_file, includes))
                 for include in includes:
                     self.determine_order(include, library_order, external_libraries, header_files, c_files)
                 library_order.append(header_file)
             else:
-                external_libraries.append(header_file)
+                if header_file not in external_libraries:
+                    external_libraries.append(header_file)
 
+    def find_dependencies(self, library, libraries):
+        library_present = False
+        for root, subFolders, files in os.walk(self.appdir + '/propeller-c-lib'):
+            if library + '.h' in files:
+                if library in root[root.rindex('/') + 1:]:
+                    library_present = True
+                    if library + '.c' in files:
+                        with open(root + '/' + library + '.c') as library_code:
+                            includes = self.parse_includes(library_code.read())
+                    else:
+                        with open(root + '/' + library + '.h') as header_code:
+                            includes = self.parse_includes(header_code.read())
+
+                    libraries[library] = {
+                        'path': root
+                    }
+
+                    for include in includes:
+                        if include not in libraries:
+                            (success, logging) = self.find_dependencies(include, libraries)
+                            if not success:
+                                return (success, logging)
+                else:
+                    return (True, '')
+
+        if library_present:
+            return (True, '')
+        else:
+            return (False, 'Library %s not found' % library)
 
     def compile_lib(self, source_file, app_filename, libraries):
         pass
@@ -152,8 +186,6 @@ class PropCCompiler:
         return (success, base64binary, out, err)
 
     def get_includes(self, includes):
-
-
         descriptors = []
         for include in includes:
             # First: look into files
