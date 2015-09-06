@@ -81,7 +81,11 @@ def single_c(action):
 
 @app.route('/multiple/prop-c/<action>', methods=['POST'])
 def multiple_c(action):
-    return handle_c(action, {}, "test.spin")
+    main_file = request.form.get("main_file", None)
+    files = {}
+    for file_name in request.files.keys():
+        files[file_name] = request.files.get(file_name)
+    return handle_c(action, files, main_file)
 
 
 def handle_c(action, source_files, app_filename):
@@ -98,10 +102,16 @@ def handle_c(action, source_files, app_filename):
         return Response(json.dumps(failure_data), 200, mimetype="application/json")
 
     # check filename
+    if app_filename is None:
+        failure_data = {
+            "success": False,
+            "message": "missing-main-filename"
+        }
+        return Response(json.dumps(failure_data), 200, mimetype="application/json")
     if app_filename not in source_files:
         failure_data = {
             "success": False,
-            "message": "missing-app-filename",
+            "message": "missing-main-file",
             "data": app_filename
         }
         return Response(json.dumps(failure_data), 200, mimetype="application/json")
