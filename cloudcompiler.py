@@ -1,7 +1,10 @@
+from ConfigParser import ConfigParser
+
 __author__ = 'Michel'
 
 import json
 from flask import Flask, Response, request
+from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
@@ -9,6 +12,21 @@ from PropCCompiler import PropCCompiler
 app = Flask(__name__)
 
 app.debug = True
+
+
+class FakeSecHead(object):
+    def __init__(self, fp):
+        self.fp = fp
+        self.sechead = '[section]\n'
+
+    def readline(self):
+        if self.sechead:
+            try:
+                return self.sechead
+            finally:
+                self.sechead = None
+        else:
+            return self.fp.readline()
 
 
 # ----------------------------------------------------------------------- Spin --------------------------------
@@ -127,12 +145,30 @@ def handle_c(action, source_files, app_filename):
         data['binary'] = base64binary
     return Response(json.dumps(data), 200, mimetype="application/json")
 
+
+defaults = {
+    'c-compiler': '/opt/parallax/bin/propeller-elf-gcc',
+    'c-libraries': '/opt/simple-libraries',
+    'spin-compiler': '/opt/parallax/bin/openspin',
+    'spin-libraries': '/opt/parallax/spin'
+}
+
+configfile = expanduser("~/cloudcompiler.properties")
+configs = ConfigParser(defaults)
+configs.readfp(FakeSecHead(open(configfile)))
+
+app_configs = {}
+for (key, value) in configs.items('section'):
+    app_configs[key] = value
+
 compilers = {
-    "SPIN": SpinCompiler(),
-    "PROP-C": PropCCompiler()
+    "SPIN": SpinCompiler(app_configs),
+    "PROP-C": PropCCompiler(app_configs)
 }
 
 actions = ["COMPILE", "BIN", "EEPROM"]
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
+
+

@@ -12,8 +12,8 @@ __author__ = 'Michel'
 
 class PropCCompiler:
 
-    def __init__(self):
-        self.compiler_executable = "/opt/parallax/bin/propeller-elf-gcc"
+    def __init__(self, configs):
+        self.configs = configs
 
         self.compile_actions = {
             "COMPILE": {"compile-options": [], "extension":".elf", "return-binary": False},
@@ -128,7 +128,7 @@ class PropCCompiler:
 
     def find_dependencies(self, library, libraries):
         library_present = False
-        for root, subFolders, files in os.walk(self.appdir + '/propeller-c-lib'):
+        for root, subFolders, files in os.walk(self.configs['c-libraries']):
             if library + '.h' in files:
                 if library in root[root.rindex('/') + 1:]:
                     library_present = True
@@ -224,7 +224,7 @@ class PropCCompiler:
         return includes
 
     def create_lib_executing_data(self, lib_c_file_name, binary_file, descriptors):
-        executable = self.compiler_executable
+        executable = self.configs['c-compiler']
 
         executing_data = [executable]
         executing_data.append("-I")
@@ -248,7 +248,7 @@ class PropCCompiler:
         return executing_data
 
     def create_executing_data(self, main_c_file_name, binary_file, binaries, descriptors):
-        executable = self.compiler_executable
+        executable = self.configs['c-compiler']
 
         executing_data = [executable]
         executing_data.append("-I")
