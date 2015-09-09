@@ -11,8 +11,8 @@ from werkzeug.datastructures import FileStorage
 
 class SpinCompiler:
 
-    def __init__(self):
-        self.compiler_executable = "/compilers/openspin"
+    def __init__(self, configs):
+        self.configs = configs
 
         self.compile_actions = {
             "COMPILE": {"compile-options": ["-b"], "extension":".binary", "return-binary": False},
@@ -34,9 +34,9 @@ class SpinCompiler:
                 elif isinstance(source_files[filename], FileStorage):
                     source_file.write(source_files[filename].stream.read())
 
-        executable = self.appdir + self.compiler_executable
+        executable = self.configs['spin-compiler']
 
-        lib_directory = self.appdir + "/propeller-spin-lib"
+        lib_directory = self.configs['spin-libraries']
 
         executing_data = [executable, "-o", binary_file.name, "-L", lib_directory]
         executing_data.extend(self.compile_actions[action]["compile-options"])
