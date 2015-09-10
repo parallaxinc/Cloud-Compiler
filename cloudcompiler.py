@@ -58,7 +58,7 @@ def handle_spin(action, source_files, app_filename):
             "message": "unknown-action",
             "data": action
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # check filename
     if app_filename is None:
@@ -66,14 +66,14 @@ def handle_spin(action, source_files, app_filename):
             "success": False,
             "message": "missing-main-filename"
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
     if app_filename not in source_files:
         failure_data = {
             "success": False,
             "message": "missing-main-file",
             "data": app_filename
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # call compiler and prepare return data
     (success, base64binary, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
@@ -117,7 +117,7 @@ def handle_c(action, source_files, app_filename):
             "message": "unknown-action",
             "data": action
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # check filename
     if app_filename is None:
@@ -132,7 +132,7 @@ def handle_c(action, source_files, app_filename):
             "message": "missing-main-file",
             "data": app_filename
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # call compiler and prepare return data
     (success, base64binary, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
