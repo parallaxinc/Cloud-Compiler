@@ -44,7 +44,7 @@ class PropCCompiler:
                 # Check c file exists
                 c_filename = filename[:-1] + 'c'
                 if c_filename not in source_files:
-                    return (False, None, '', 'Missing c file %s for header %s' % (c_filename, filename))
+                    return (False, None, '', '', 'Missing c file %s for header %s' % (c_filename, filename))
 
                 h_file_data[filename] = {
                     'c_filename': c_filename
@@ -113,7 +113,7 @@ class PropCCompiler:
 
         shutil.rmtree(source_directory)
 
-        return (success, base64binary, compiler_output, err)
+        return (success, base64binary, self.compile_actions[action]["extension"], compiler_output, err)
 
     def determine_order(self, header_file, library_order, external_libraries, header_files, c_files):
         if header_file not in library_order:

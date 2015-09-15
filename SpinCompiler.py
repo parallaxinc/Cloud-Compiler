@@ -61,4 +61,4 @@ class SpinCompiler:
 
         os.remove(binary_file.name)
 
-        return (success, base64binary, out, err)
+        return (success, base64binary, self.compile_actions[action]['extension'], out, err)

@@ -76,7 +76,7 @@ def handle_spin(action, source_files, app_filename):
         return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # call compiler and prepare return data
-    (success, base64binary, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
+    (success, base64binary, extension, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
     data = {
         "success": success,
        # "request": source_files,
@@ -85,6 +85,7 @@ def handle_spin(action, source_files, app_filename):
     }
     if action != "COMPILE" and success:
         data['binary'] = base64binary
+        data['extension'] = extension
     return Response(json.dumps(data), 200, mimetype="application/json")
 
 
@@ -135,7 +136,7 @@ def handle_c(action, source_files, app_filename):
         return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # call compiler and prepare return data
-    (success, base64binary, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
+    (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
     data = {
         "success": success,
         "compiler-output": out,
@@ -143,6 +144,7 @@ def handle_c(action, source_files, app_filename):
     }
     if action != "COMPILE" and success:
         data['binary'] = base64binary
+        data['extension'] = extension
     return Response(json.dumps(data), 200, mimetype="application/json")
 
 
