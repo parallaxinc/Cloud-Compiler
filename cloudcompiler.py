@@ -1,13 +1,13 @@
 from ConfigParser import ConfigParser
 
-__author__ = 'Michel'
-
 import json
 from flask import Flask, Response, request
 from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
+
+__author__ = 'Michel'
 
 app = Flask(__name__)
 

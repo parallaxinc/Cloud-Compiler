@@ -1,12 +1,12 @@
 import base64
 
-__author__ = 'Michel'
-
 import os
 import subprocess
 import shutil
 from tempfile import NamedTemporaryFile, mkdtemp
 from werkzeug.datastructures import FileStorage
+
+__author__ = 'Michel'
 
 
 class SpinCompiler:
