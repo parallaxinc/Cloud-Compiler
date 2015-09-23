@@ -32,6 +32,8 @@ class FakeSecHead(object):
 # ----------------------------------------------------------------------- Spin --------------------------------
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action):
+    #print("Single spin")
+    #print(request.data)
     source_files = {
         "single.spin": request.data
     }
@@ -77,6 +79,10 @@ def handle_spin(action, source_files, app_filename):
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
+
+    if err is None:
+        err = ''
+
     data = {
         "success": success,
        # "request": source_files,
@@ -137,6 +143,10 @@ def handle_c(action, source_files, app_filename):
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
+
+    if err is None:
+        err = ''
+
     data = {
         "success": success,
         "compiler-output": out,
