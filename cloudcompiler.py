@@ -98,6 +98,7 @@ def handle_spin(action, source_files, app_filename):
 # ----------------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
+    print(request.data)
     source_files = {
         "single.c": request.data
     }

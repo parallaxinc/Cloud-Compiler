@@ -127,6 +127,7 @@ class PropCCompiler:
                     external_libraries.append(header_file)
 
     def find_dependencies(self, library, libraries):
+        #print("Find dependencies for %s in %s" % (library, self.configs['c-libraries']))
         library_present = False
         for root, subFolders, files in os.walk(self.configs['c-libraries']):
             if library + '.h' in files:
