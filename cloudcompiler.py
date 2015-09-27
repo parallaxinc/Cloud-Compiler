@@ -2,7 +2,7 @@ from ConfigParser import ConfigParser
 
 import json
 from flask import Flask, Response, request
-from os.path import expanduser, isfile
+from os.path import expanduser
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
