@@ -206,7 +206,7 @@ class PropCCompiler:
 
         if success and self.compile_actions[action]["return-binary"]:
             with open(binary_file.name) as bf:
-                base64binary = base64.b32encode(bf.read())
+                base64binary = base64.b64encode(bf.read())
 
         if success:
             os.remove(binary_file.name)
