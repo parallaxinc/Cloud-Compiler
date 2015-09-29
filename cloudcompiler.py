@@ -11,8 +11,6 @@ __author__ = 'Michel'
 
 app = Flask(__name__)
 
-app.debug = True
-
 
 class FakeSecHead(object):
     def __init__(self, fp):
@@ -182,6 +180,7 @@ compilers = {
 actions = ["COMPILE", "BIN", "EEPROM"]
 
 if __name__ == '__main__':
+    app.debug = True
     app.run(host='0.0.0.0')
 
 
