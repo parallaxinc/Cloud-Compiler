@@ -21,8 +21,6 @@ class PropCCompiler:
             "EEPROM": {"compile-options": [], "extension":".elf", "return-binary": True}
         }
 
-        self.appdir = os.getcwd()
-
     def compile(self, action, source_files, app_filename):
         source_directory = mkdtemp()
 
@@ -73,7 +71,6 @@ class PropCCompiler:
         library_order = []
         external_libraries = []
 
-
         # determine order and direct library dependencies
         for include in c_file_data[app_filename]['includes']:
             self.determine_order(include, library_order, external_libraries, h_file_data, c_file_data)
@@ -117,6 +114,7 @@ class PropCCompiler:
 
     def determine_order(self, header_file, library_order, external_libraries, header_files, c_files):
         if header_file not in library_order:
+            # TODO review to check what happens if no header supplied (if that is valid)
             if header_file + '.h' in header_files:
                 includes = c_files[header_files[header_file + '.h']['c_filename']]['includes']
                 for include in includes:
@@ -127,7 +125,6 @@ class PropCCompiler:
                     external_libraries.append(header_file)
 
     def find_dependencies(self, library, libraries):
-        #print("Find dependencies for %s in %s" % (library, self.configs['c-libraries']))
         library_present = False
         for root, subFolders, files in os.walk(self.configs['c-libraries']):
             if library + '.h' in files:

@@ -2,7 +2,7 @@ from ConfigParser import ConfigParser
 
 import json
 from flask import Flask, Response, request
-from os.path import expanduser
+from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
@@ -12,17 +12,18 @@ __author__ = 'Michel'
 app = Flask(__name__)
 
 
+# ------------------------------------- Util functions and classes -------------------------------------------
 class FakeSecHead(object):
     def __init__(self, fp):
         self.fp = fp
-        self.sechead = '[section]\n'
+        self.sec_head = '[section]\n'
 
     def readline(self):
-        if self.sechead:
+        if self.sec_head:
             try:
-                return self.sechead
+                return self.sec_head
             finally:
-                self.sechead = None
+                self.sec_head = None
         else:
             return self.fp.readline()
 
@@ -30,8 +31,6 @@ class FakeSecHead(object):
 # ----------------------------------------------------------------------- Spin --------------------------------
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action):
-    #print("Single spin")
-    #print(request.data)
     source_files = {
         "single.spin": request.data
     }
@@ -83,7 +82,6 @@ def handle_spin(action, source_files, app_filename):
 
     data = {
         "success": success,
-       # "request": source_files,
         "compiler-output": out,
         "compiler-error": err
     }
@@ -93,10 +91,9 @@ def handle_spin(action, source_files, app_filename):
     return Response(json.dumps(data), 200, mimetype="application/json")
 
 
-# ----------------------------------------------------------------------- Propeller C --------------------------------
+# ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
-    print(request.data)
     source_files = {
         "single.c": request.data
     }
@@ -157,6 +154,7 @@ def handle_c(action, source_files, app_filename):
     return Response(json.dumps(data), 200, mimetype="application/json")
 
 
+# --------------------------------------- Defaults and compiler initialization --------------------------------
 defaults = {
     'c-compiler': '/opt/parallax/bin/propeller-elf-gcc',
     'c-libraries': '/opt/simple-libraries',
@@ -165,12 +163,15 @@ defaults = {
 }
 
 configfile = expanduser("~/cloudcompiler.properties")
-configs = ConfigParser(defaults)
-configs.readfp(FakeSecHead(open(configfile)))
+if isfile(configfile):
+    configs = ConfigParser(defaults)
+    configs.readfp(FakeSecHead(open(configfile)))
 
-app_configs = {}
-for (key, value) in configs.items('section'):
-    app_configs[key] = value
+    app_configs = {}
+    for (key, value) in configs.items('section'):
+        app_configs[key] = value
+else:
+    app_configs = defaults
 
 compilers = {
     "SPIN": SpinCompiler(app_configs),
@@ -179,6 +180,21 @@ compilers = {
 
 actions = ["COMPILE", "BIN", "EEPROM"]
 
+
+# -------------------------------------------- Logging ---------------------------------------------------------
+if not app.debug:
+    import logging
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler('cloudcompiler.log')
+    file_handler.setLevel(logging.WARNING)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s '
+        '[in %(pathname)s:%(lineno)d]'
+    ))
+    app.logger.addHandler(file_handler)
+
+
+# ----------------------------------------------- Development server -------------------------------------------
 if __name__ == '__main__':
     app.debug = True
     app.run(host='0.0.0.0')

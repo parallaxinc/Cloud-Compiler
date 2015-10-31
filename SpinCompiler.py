@@ -20,8 +20,6 @@ class SpinCompiler:
             "EEPROM": {"compile-options": ["-e"], "extension":".eeprom", "return-binary": True}
         }
 
-        self.appdir = os.getcwd()
-
     def compile(self, action, source_files, app_filename):
         spin_source_directory = mkdtemp()
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
@@ -35,7 +33,6 @@ class SpinCompiler:
                     source_file.write(source_files[filename].stream.read())
 
         executable = self.configs['spin-compiler']
-
         lib_directory = self.configs['spin-libraries']
 
         executing_data = [executable, "-o", binary_file.name, "-L", lib_directory]
