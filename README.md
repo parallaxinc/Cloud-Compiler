@@ -71,7 +71,17 @@ The load test is configured so that each user makes a request each 5 to 15 secon
 
 ### 400 users
 
-- Load average: 0.87 - 1.20
+- Load average: 0.87 - 0.95
 - uwsgi cpu: 50 - 62%
 
 ![Locust 400 users](/locust400.png)
+
+
+### 500 users
+
+- Load average: 1.10 - 1.23
+- uwsgi cpu: 63 - 66%
+
+Once a certain load is reached, response times go up fast.
+
+![Locust 500 users](/locust500.png)
