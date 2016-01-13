@@ -47,3 +47,31 @@ For example:
 ```
 c-libraries = /home/compiler/simple-libraries
 ```
+
+
+## Performance
+
+Initial test using very simple spin and c programs have been conducted.
+
+Because these have been done using a virtualized system its not 100% clear what the server specs are but some estimations:
+
+- Debian 8.2 without graphical layer using VirtualBox 5.0.3
+- Host pc i7-2600 @ 3.40GHz with 1 processor assigned to the VirtualBox instance
+- 16GB memory with 2GB assigned to the VirtualBox instance
+- Virtual harddisk is 8GB
+
+The load test is configured so that each user makes a request each 5 to 15 seconds.
+
+### 200 users
+
+- Load average: 0.3 - 0.45
+- uwsgi cpu: 24 - 28%
+
+![Locust 200 users](/locust200.png)
+
+### 400 users
+
+- Load average: 0.87 - 1.20
+- uwsgi cpu: 50 - 62%
+
+![Locust 400 users](/locust400.png)
