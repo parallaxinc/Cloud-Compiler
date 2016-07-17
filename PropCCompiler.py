@@ -189,7 +189,7 @@ class PropCCompiler:
 
             out, err = process.communicate()
 
-            if process.returncode == 0 and (err is None or len(err) == 0):
+            if process.returncode == 0:  # and (err is None or len(err) == 0):
                 out = "Compile successful\n"
                 success = True
             else:
