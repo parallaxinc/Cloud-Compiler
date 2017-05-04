@@ -220,3 +220,6 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+/CloudCompiler-Pkg.tar.gz
+/build
+/deploy-test
