@@ -10,6 +10,7 @@ import base64
 
 __author__ = 'Michel'
 
+version = "1.0.0"
 app = Flask(__name__)
 
 
@@ -194,6 +195,7 @@ defaults = {
 }
 
 configfile = expanduser("~/cloudcompiler.properties")
+
 if isfile(configfile):
     configs = ConfigParser(defaults)
     configs.readfp(FakeSecHead(open(configfile)))
