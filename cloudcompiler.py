@@ -6,9 +6,11 @@ from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
+import base64
 
 __author__ = 'Michel'
 
+version = "1.0.0"
 app = Flask(__name__)
 
 
@@ -110,10 +112,10 @@ def multiple_c(action):
 
 
 def handle_c(action, source_files, app_filename):
-    # format data
+    # format to upper case to make string compares easier
     action = action.upper()
 
-    # check data
+    # Verify that we have received a valid action (COMPILE, BIN, EEPROM)
     if action not in actions:
         failure_data = {
             "success": False,
@@ -129,6 +131,8 @@ def handle_c(action, source_files, app_filename):
             "message": "missing-main-filename"
         }
         return Response(json.dumps(failure_data), 200, mimetype="application/json")
+
+    # Is the application file name is in the list of files
     if app_filename not in source_files:
         failure_data = {
             "success": False,
@@ -136,6 +140,24 @@ def handle_c(action, source_files, app_filename):
             "data": app_filename
         }
         return Response(json.dumps(failure_data), 400, mimetype="application/json")
+
+    # --------------------------------------------------------------
+    # Custom hook to trap the S3 Scribbler demo/initialization block
+    # Look for a specific string in the source file (single.c)
+    # --------------------------------------------------------------
+    if '#pragma load_default_scribbler_binary' in source_files['single.c']:
+        out = "Loading S3 Demo App..."
+        data = {
+            "success": True,
+            "compiler-output": out,
+            "compiler-error": ''
+        }
+
+        if action != "COMPILE":
+            data['binary'] = s3_load_init_binary()
+            data['extension'] = 'elf'
+
+        return Response(json.dumps(data), 200, mimetype="application/json")
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
@@ -148,10 +170,20 @@ def handle_c(action, source_files, app_filename):
         "compiler-output": out,
         "compiler-error": err
     }
+
     if action != "COMPILE" and success:
         data['binary'] = base64binary
         data['extension'] = extension
+
     return Response(json.dumps(data), 200, mimetype="application/json")
+
+
+def s3_load_init_binary():
+    with open('scribbler_default.binary', 'rb') as f:
+        encoded = base64.b64encode(f.read())
+
+    f.close()
+    return encoded
 
 
 # --------------------------------------- Defaults and compiler initialization --------------------------------
@@ -163,6 +195,7 @@ defaults = {
 }
 
 configfile = expanduser("~/cloudcompiler.properties")
+
 if isfile(configfile):
     configs = ConfigParser(defaults)
     configs.readfp(FakeSecHead(open(configfile)))
@@ -196,7 +229,7 @@ if not app.debug:
 
 # ----------------------------------------------- Development server -------------------------------------------
 if __name__ == '__main__':
-    app.debug = True
+    app.debug = False
     app.run(host='0.0.0.0')
 
 
