@@ -267,7 +267,7 @@ class PropCCompiler:
         for binary in binaries:
             executing_data.append(binary + ".o")
         executing_data.append(main_c_file_name)
-        
+
         libraries = descriptors.keys()
         executing_data.append('-Wl,--start-group')
         executing_data.append("-lm")
