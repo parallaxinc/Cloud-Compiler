@@ -185,6 +185,11 @@ class PropCCompiler:
         print(' '.join(executing_data))
 
         try:
+
+            f = open('command-line.txt','w')
+            f.write('\n\nWorking Directory: ' + working_directory + '\n\nCommand line: ' + ' '.join(executing_data))
+            f.close()
+
             process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
 
             out, err = process.communicate()
@@ -277,9 +282,5 @@ class PropCCompiler:
                 executing_data.append("-l" + library)
             executing_data.append("-lm")
             executing_data.append('-\)')
-
-        f = open('command-line.txt','w')
-        f.write(str(executing_data))
-        f.close()
 
         return executing_data
