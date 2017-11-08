@@ -267,13 +267,19 @@ class PropCCompiler:
         for binary in binaries:
             executing_data.append(binary + ".o")
         executing_data.append(main_c_file_name)
-        executing_data.append("-lm")
-
+        
         libraries = descriptors.keys()
-        while len(libraries) > 0:
+        if len(libraries) == 0:
+            executing_data.append("-lm")
+        else:
+            executing_data.append('-\(')
             for library in libraries:
                 executing_data.append("-l" + library)
             executing_data.append("-lm")
-            del libraries[-1]
+            executing_data.append('-\)')
+
+        f = open('command-line.txt','w')
+        f.write(str(executing_data))
+        f.close()
 
         return executing_data
