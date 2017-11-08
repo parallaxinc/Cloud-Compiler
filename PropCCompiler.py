@@ -274,13 +274,10 @@ class PropCCompiler:
         executing_data.append(main_c_file_name)
         
         libraries = descriptors.keys()
-        if len(libraries) == 0:
-            executing_data.append("-lm")
-        else:
-            executing_data.append('-\(')
-            for library in libraries:
-                executing_data.append("-l" + library)
-            executing_data.append("-lm")
-            executing_data.append('-\)')
+        executing_data.append('-Wl,--start-group')
+        executing_data.append("-lm")
+        for library in libraries:
+            executing_data.append("-l" + library)
+        executing_data.append('-Wl,--end-group')
 
         return executing_data
