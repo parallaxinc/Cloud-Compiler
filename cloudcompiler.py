@@ -130,7 +130,7 @@ def handle_c(action, source_files, app_filename):
             "success": False,
             "message": "missing-main-filename"
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
     # Is the application file name is in the list of files
     if app_filename not in source_files:
