@@ -132,7 +132,7 @@ def handle_c(action, source_files, app_filename):
         }
         return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
-    # Is the application file name is in the list of files
+    # Is the application file name in the list of files
     if app_filename not in source_files:
         failure_data = {
             "success": False,
