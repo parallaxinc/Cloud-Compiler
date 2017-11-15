@@ -165,6 +165,13 @@ def handle_c(action, source_files, app_filename):
     if err is None:
         err = ''
 
+    if success:
+        # Success! Keep it simple
+        out = 'Compiled successfully'
+    else:
+        # Failed! Let's show the details
+        out = 'Failed to compile:\n\n' + out
+
     data = {
         "success": success,
         "compiler-output": out,
