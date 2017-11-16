@@ -167,10 +167,10 @@ def handle_c(action, source_files, app_filename):
 
     if success:
         # Success! Keep it simple
-        out = 'Compiled successfully'
+        out = 'Succeeded.'
     else:
-        # Failed! Let's show the details
-        out = 'Failed to compile:\n\n' + out
+        # Failed! Show the details
+        out = 'Failed!\n\n-------- compiler messages --------\n' + out
 
     data = {
         "success": success,
