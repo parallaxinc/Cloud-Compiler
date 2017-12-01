@@ -10,7 +10,7 @@ import base64
 
 __author__ = 'Michel'
 
-version = "1.0.0"
+version = "1.0.1"
 app = Flask(__name__)
 
 
