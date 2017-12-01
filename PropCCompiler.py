@@ -80,13 +80,10 @@ class PropCCompiler:
         for library in external_libraries:
             self.find_dependencies(library, external_libraries_info)
 
-        if len(external_libraries) == 0:
-            compiler_output += "Required libraries: None\n"
-        else:
-            compiler_output += "Required libraries: %s\n" % ', '.join(external_libraries)
-        if len(library_order) == 0:
-            compiler_output += "Library compile order: None needed\n"
-        else:
+        if len(external_libraries) > 0:
+            compiler_output += "Included libraries: %s\n" % ', '.join(external_libraries)
+        # TODO determine if the following statement and executing_data need adjusting when multi-file projects are enabled
+        if len(library_order) > 0:
             compiler_output += "Library compile order: %s\n" % ', '.join(library_order)
 
         success = True
@@ -267,13 +264,12 @@ class PropCCompiler:
         for binary in binaries:
             executing_data.append(binary + ".o")
         executing_data.append(main_c_file_name)
-        executing_data.append("-lm")
 
         libraries = descriptors.keys()
-        while len(libraries) > 0:
-            for library in libraries:
-                executing_data.append("-l" + library)
-            executing_data.append("-lm")
-            del libraries[-1]
+        executing_data.append("-Wl,--start-group")
+        executing_data.append("-lm")
+        for library in libraries:
+            executing_data.append("-l" + library)
+        executing_data.append("-Wl,--end-group")
 
         return executing_data
