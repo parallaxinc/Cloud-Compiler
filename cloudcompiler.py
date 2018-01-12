@@ -10,7 +10,7 @@ import base64
 
 __author__ = 'Michel'
 
-version = "1.0.0"
+version = "1.1.0"
 app = Flask(__name__)
 
 
@@ -130,9 +130,9 @@ def handle_c(action, source_files, app_filename):
             "success": False,
             "message": "missing-main-filename"
         }
-        return Response(json.dumps(failure_data), 200, mimetype="application/json")
+        return Response(json.dumps(failure_data), 400, mimetype="application/json")
 
-    # Is the application file name is in the list of files
+    # Is the application file name in the list of files
     if app_filename not in source_files:
         failure_data = {
             "success": False,
@@ -164,6 +164,13 @@ def handle_c(action, source_files, app_filename):
 
     if err is None:
         err = ''
+
+    if success:
+        # Success! Keep it simple
+        out = 'Succeeded.'
+    else:
+        # Failed! Show the details
+        out = 'Failed!\n\n-------- compiler messages --------\n' + out
 
     data = {
         "success": success,
