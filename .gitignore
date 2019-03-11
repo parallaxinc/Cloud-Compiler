@@ -1,3 +1,7 @@
+# Cloud Compiler excludes
+*.sh
+
+
 #################
 ## PyCharm
 #################
@@ -223,3 +227,4 @@ pip-log.txt
 /CloudCompiler-Pkg.tar.gz
 /build
 /deploy-test
+load-testing
