@@ -226,12 +226,14 @@ class PropCCompiler:
         executing_data.append(".")
         executing_data.append("-L")
         executing_data.append(".")
+
         for descriptor in descriptors:
             executing_data.append("-I")
             executing_data.append(descriptors[descriptor]["path"])
             executing_data.append("-L")
             executing_data.append(descriptors[descriptor]["path"] + '/cmm')
-        executing_data.append("-O0")
+
+        executing_data.append("-Os")
         executing_data.append("-mcmm")
         executing_data.append("-m32bit-doubles")
         executing_data.append("-std=c99")
@@ -250,26 +252,31 @@ class PropCCompiler:
         executing_data.append(".")
         executing_data.append("-L")
         executing_data.append(".")
+
         for descriptor in descriptors:
             executing_data.append("-I")
             executing_data.append(descriptors[descriptor]["path"])
             executing_data.append("-L")
             executing_data.append(descriptors[descriptor]["path"] + '/cmm')
-        executing_data.append("-O0")
+
+        executing_data.append("-Os")
         executing_data.append("-mcmm")
         executing_data.append("-m32bit-doubles")
         executing_data.append("-std=c99")
         executing_data.append("-o")
         executing_data.append(binary_file)
+
         for binary in binaries:
             executing_data.append(binary + ".o")
-        executing_data.append(main_c_file_name)
 
+        executing_data.append(main_c_file_name)
         libraries = descriptors.keys()
         executing_data.append("-Wl,--start-group")
         executing_data.append("-lm")
+
         for library in libraries:
             executing_data.append("-l" + library)
+
         executing_data.append("-Wl,--end-group")
 
         return executing_data
