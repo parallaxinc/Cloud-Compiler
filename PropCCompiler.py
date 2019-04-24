@@ -39,9 +39,9 @@ class PropCCompiler:
         self.configs = configs
 
         self.compile_actions = {
-            "COMPILE": {"compile-options": [], "extension":".elf", "return-binary": False},
-            "BIN": {"compile-options": [], "extension":".elf", "return-binary": True},
-            "EEPROM": {"compile-options": [], "extension":".elf", "return-binary": True}
+            "COMPILE": {"compile-options": [], "extension": ".elf", "return-binary": False},
+            "BIN": {"compile-options": [], "extension": ".elf", "return-binary": True},
+            "EEPROM": {"compile-options": [], "extension": ".elf", "return-binary": True}
         }
 
     def compile(self, action, source_files, app_filename):
@@ -55,7 +55,7 @@ class PropCCompiler:
         for filename in source_files:
             if filename.endswith(".h"):
                 with open(source_directory + "/" + filename, mode='w') as header_file:
-                    if isinstance(source_files[filename], basestring):
+                    if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
                     elif isinstance(source_files[filename], FileStorage):
                         file_content = source_files[filename].stream.read()
@@ -65,7 +65,7 @@ class PropCCompiler:
                 # Check c file exists
                 c_filename = filename[:-1] + 'c'
                 if c_filename not in source_files:
-                    return (False, None, '', '', 'Missing c file %s for header %s' % (c_filename, filename))
+                    return False, None, '', '', 'Missing c file %s for header %s' % (c_filename, filename)
 
                 h_file_data[filename] = {
                     'c_filename': c_filename
@@ -75,7 +75,7 @@ class PropCCompiler:
         for filename in source_files:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
-                    if isinstance(source_files[filename], basestring):
+                    if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
                     elif isinstance(source_files[filename], FileStorage):
                         file_content = source_files[filename].stream.read()
@@ -105,7 +105,10 @@ class PropCCompiler:
 
         if len(external_libraries) > 0:
             compiler_output += "Included libraries: %s\n" % ', '.join(external_libraries)
-        # TODO determine if the following statement and executing_data need adjusting when multi-file projects are enabled
+
+        # TODO determine if the following statement and executing_data need adjusting when
+        #  multi-file projects are enabled
+
         if len(library_order) > 0:
             compiler_output += "Library compile order: %s\n" % ', '.join(library_order)
 
@@ -113,7 +116,12 @@ class PropCCompiler:
         # Precompile libraries
         for library in library_order:
             compiler_output += "Compiling: %s\n" % library
-            (lib_success, lib_out, lib_err) = self.compile_lib(source_directory, library + '.c', library + '.o', external_libraries_info)
+            (lib_success, lib_out, lib_err) = self.compile_lib(
+                source_directory,
+                library + '.c',
+                library + '.o',
+                external_libraries_info)
+
             if lib_success:
                 compiler_output += lib_out + '\n'
             else:
@@ -121,20 +129,31 @@ class PropCCompiler:
                 success = False
 
         base64binary = None
+        err = None
+
         if success:
             # Compile binary
-            (bin_success, base64binary, out, err) = self.compile_binary(source_directory, action, app_filename, library_order, external_libraries_info)
+            (bin_success, base64binary, out, err) = self.compile_binary(
+                source_directory,
+                action,
+                app_filename,
+                library_order,
+                external_libraries_info)
+
             compiler_output += out
+
             if not bin_success:
                 success = False
 
         shutil.rmtree(source_directory)
 
-        return (success, base64binary, self.compile_actions[action]["extension"], compiler_output, err)
+        return success, base64binary, self.compile_actions[action]["extension"], compiler_output, err
 
     def determine_order(self, header_file, library_order, external_libraries, header_files, c_files):
         if header_file not in library_order:
+
             # TODO review to check what happens if no header supplied (if that is valid)
+
             if header_file + '.h' in header_files:
                 includes = c_files[header_files[header_file + '.h']['c_filename']]['includes']
                 for include in includes:
@@ -165,14 +184,14 @@ class PropCCompiler:
                         if include not in libraries:
                             (success, logging) = self.find_dependencies(include, libraries)
                             if not success:
-                                return (success, logging)
+                                return success, logging
                 else:
-                    return (True, '')
+                    return True, ''
 
         if library_present:
-            return (True, '')
+            return True, ''
         else:
-            return (False, 'Library %s not found' % library)
+            return False, 'Library %s not found' % library
 
     def compile_lib(self, working_directory, source_file, target_filename, libraries):
         print('%s -> Compiling %s into %s' % (working_directory, source_file, target_filename))
@@ -195,7 +214,7 @@ class PropCCompiler:
             err = "Compiler not found\n"
             success = False
 
-        return (success, out, err)
+        return success, out, err
 
     def compile_binary(self, working_directory, action, source_file, binaries, libraries):
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
@@ -205,7 +224,11 @@ class PropCCompiler:
         print(' '.join(executing_data))
 
         try:
-            process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
+            process = subprocess.Popen(
+                executing_data,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=working_directory)  # call compile
 
             out, err = process.communicate()
 
@@ -228,7 +251,7 @@ class PropCCompiler:
         if success:
             os.remove(binary_file.name)
 
-        return (success, base64binary, out, err)
+        return success, base64binary, out, err
 
     def parse_includes(self, source_file):
         includes = set()
@@ -244,11 +267,7 @@ class PropCCompiler:
     def create_lib_executing_data(self, lib_c_file_name, binary_file, descriptors):
         executable = self.configs['c-compiler']
 
-        executing_data = [executable]
-        executing_data.append("-I")
-        executing_data.append(".")
-        executing_data.append("-L")
-        executing_data.append(".")
+        executing_data = [executable, "-I", ".", "-L", "."]
 
         for descriptor in descriptors:
             executing_data.append("-I")
@@ -270,11 +289,7 @@ class PropCCompiler:
     def create_executing_data(self, main_c_file_name, binary_file, binaries, descriptors):
         executable = self.configs['c-compiler']
 
-        executing_data = [executable]
-        executing_data.append("-I")
-        executing_data.append(".")
-        executing_data.append("-L")
-        executing_data.append(".")
+        executing_data = [executable, "-I", ".", "-L", "."]
 
         for descriptor in descriptors:
             executing_data.append("-I")
