@@ -1,8 +1,31 @@
-from ConfigParser import ConfigParser
+#  Copyright (c) 2019 Parallax Inc.
+#
+#  Permission is hereby granted, free of charge, to any person obtaining
+#  a copy of this software and associated documentation files (the
+#  “Software”), to deal in the Software without restriction, including
+#  without limitation the rights to use, copy,  modify, merge, publish,
+#  distribute, sublicense, and/or sell copies of the Software, and to
+#  permit persons to whom the Software is furnished to do so, subject
+#  to the following conditions:
+#
+#       The above copyright notice and this permission notice shall be
+#       included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+#  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFINGEMENT.
+#  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+#  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+#  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+#  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+#
+
+# from ConfigParser import ConfigParser
 
 import json
 from flask import Flask, Response, request
-from os.path import expanduser, isfile
+# from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
@@ -10,25 +33,25 @@ import base64
 
 __author__ = 'Michel'
 
-version = "1.1.1"
+version = "1.2.0"
 app = Flask(__name__)
 
 
 # ------------------------------------- Util functions and classes -------------------------------------------
-class FakeSecHead(object):
-    def __init__(self, fp):
-        self.fp = fp
-        self.sec_head = '[section]\n'
-
-    def readline(self):
-        if self.sec_head:
-            try:
-                return self.sec_head
-            finally:
-                self.sec_head = None
-        else:
-            return self.fp.readline()
-
+# class FakeSecHead(object):
+#     def __init__(self, fp):
+#         self.fp = fp
+#         self.sec_head = '[section]\n'
+#
+#     def readline(self):
+#         if self.sec_head:
+#             try:
+#                 return self.sec_head
+#             finally:
+#                 self.sec_head = None
+#         else:
+#             return self.fp.readline()
+#
 
 # ----------------------------------------------------------------------- Spin --------------------------------
 @app.route('/single/spin/<action>', methods=['POST'])
@@ -193,25 +216,25 @@ def s3_load_init_binary():
     return encoded
 
 
-# --------------------------------------- Defaults and compiler initialization --------------------------------
+# ---------- Defaults and compiler initialization ----------
 defaults = {
     'c-compiler': '/opt/parallax/bin/propeller-elf-gcc',
-    'c-libraries': '/opt/simple-libraries',
+    'c-libraries': '/opt/parallax/simple-libraries',
     'spin-compiler': '/opt/parallax/bin/openspin',
     'spin-libraries': '/opt/parallax/spin'
 }
 
-configfile = expanduser("~/cloudcompiler.properties")
-
-if isfile(configfile):
-    configs = ConfigParser(defaults)
-    configs.readfp(FakeSecHead(open(configfile)))
-
-    app_configs = {}
-    for (key, value) in configs.items('section'):
-        app_configs[key] = value
-else:
-    app_configs = defaults
+# configfile = expanduser("~/cloudcompiler.properties")
+#
+# if isfile(configfile):
+#     configs = ConfigParser(defaults)
+#     configs.readfp(FakeSecHead(open(configfile)))
+#
+#     app_configs = {}
+#     for (key, value) in configs.items('section'):
+#         app_configs[key] = value
+# else:
+app_configs = defaults
 
 compilers = {
     "SPIN": SpinCompiler(app_configs),
@@ -238,5 +261,3 @@ if not app.debug:
 if __name__ == '__main__':
     app.debug = False
     app.run(host='0.0.0.0')
-
-
