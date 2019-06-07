@@ -22,9 +22,11 @@
 #
 
 import base64
+import datetime
 import shutil
 from werkzeug.datastructures import FileStorage
 
+import sys
 import os
 import subprocess
 import re
@@ -72,11 +74,16 @@ class PropCCompiler:
                 }
 
         # C source files
+        # Loop through the array of sources in the source_files array and write
+        # their contents to physical files that the compiler can see.
         for filename in source_files:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
+                    print("Source file is of type: ", type(source_files[filename]), file=sys.stderr)
                     if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
+                    elif isinstance(source_files[filename], bytes):
+                        file_content = source_files[filename].decode()
                     elif isinstance(source_files[filename], FileStorage):
                         file_content = source_files[filename].stream.read()
 
@@ -132,6 +139,13 @@ class PropCCompiler:
         err = None
 
         if success:
+            print("Compiler command line arguments:", file=sys.stderr)
+            print("  Source directory: ", source_directory, file=sys.stderr)
+            print("  Action          : ", action, file=sys.stderr)
+            print("  App File Name   : ", app_filename, file=sys.stderr)
+            print("  Library order   : ", library_order, file=sys.stderr)
+            print("  External libs   : ", external_libraries_info, file=sys.stderr)
+
             # Compile binary
             (bin_success, base64binary, out, err) = self.compile_binary(
                 source_directory,
@@ -140,7 +154,12 @@ class PropCCompiler:
                 library_order,
                 external_libraries_info)
 
-            compiler_output += out
+            # The data type of out appears to be either a string
+            # or an array of bytes.
+            if isinstance(out,str):
+                compiler_output += out
+            else:
+                compiler_output += out.decode()
 
             if not bin_success:
                 success = False
@@ -165,7 +184,17 @@ class PropCCompiler:
 
     def find_dependencies(self, library, libraries):
         library_present = False
+
+        # ---------------------------------------------------------------------
+        # Walk through the c-libraries directory tree, looking for .h files
+        # and compare the found file names with the list of header files that
+        # are defined in the libraries list
+        #
+        # This process can take some time. A trivial source file with 2 or
+        # three header files can consume 200ms in this loop.
+        # ---------------------------------------------------------------------
         for root, subFolders, files in os.walk(self.configs['c-libraries']):
+            print(datetime.datetime.now(), " Looking for library: ", library + '.h', file=sys.stderr)
             if library + '.h' in files:
                 if library in root[root.rindex('/') + 1:]:
                     library_present = True
@@ -194,10 +223,10 @@ class PropCCompiler:
             return False, 'Library %s not found' % library
 
     def compile_lib(self, working_directory, source_file, target_filename, libraries):
-        print('%s -> Compiling %s into %s' % (working_directory, source_file, target_filename))
+        print('%s -> Compiling %s into %s' % (working_directory, source_file, target_filename), file=sys.stderr)
 
         executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
-        print(' '.join(executing_data))
+        print(' '.join(executing_data), file=sys.stderr)
 
         try:
             process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
@@ -218,6 +247,7 @@ class PropCCompiler:
 
     def compile_binary(self, working_directory, action, source_file, binaries, libraries):
         binary_file = NamedTemporaryFile(suffix=self.compile_actions[action]["extension"], delete=False)
+
         binary_file.close()
 
         executing_data = self.create_executing_data(source_file, binary_file.name, binaries, libraries)  # build execution command
@@ -245,7 +275,7 @@ class PropCCompiler:
         base64binary = ''
 
         if success and self.compile_actions[action]["return-binary"]:
-            with open(binary_file.name) as bf:
+            with open(binary_file.name, mode='rb') as bf:
                 base64binary = base64.b64encode(bf.read())
 
         if success:

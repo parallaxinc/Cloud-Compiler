@@ -25,16 +25,20 @@
 
 import json
 from flask import Flask, Response, request
+from flask_cors import CORS
+
 # from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
 import base64
+import sys
 
 __author__ = 'Michel'
 
 version = "1.2.0"
 app = Flask(__name__)
+CORS(app)
 
 
 # ------------------------------------- Util functions and classes -------------------------------------------
@@ -54,6 +58,33 @@ app = Flask(__name__)
 #
 
 # ----------------------------------------------------------------------- Spin --------------------------------
+
+# Ping the REST server for signs of life
+@app.route('/ping', methods=['GET'])
+def ping():
+    return Response(
+        "{\"result\": \"pong\"}",
+        200,
+        mimetype="application/json")
+
+
+@app.route('/version', methods=['GET'])
+def get_version():
+    # Get version from version.txt file
+    file = open("/opt/parallax/simple-libraries/version.txt", "r")
+    if file.mode == 'r':
+        lib_version = file.read()
+        return Response(
+            "{ \"result\": \"success\", \"version\": \"" + lib_version.strip() + "\"}",
+            200,
+            mimetype="application/json")
+    else:
+        return Response(
+            "{\"result\": \"fail\"}",
+            400,
+            mimetype="application/json")
+
+
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action):
     source_files = {
@@ -119,9 +150,34 @@ def handle_spin(action, source_files, app_filename):
 # ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
+
+    print("===========================================================")
+
+    src = request.data
+    source = ""
+
+    if len(src) > 0:
+        if not (not isinstance(src, bytes) and not isinstance(src, bytearray)):
+            print("Original source: ", src, file=sys.stderr)
+            print("Converting byte array to string", file=sys.stderr)
+            source = src.decode("utf-8")
+        else:
+            source = src
+    else:
+        src = request.form.get('code')
+        if len(src) > 0:
+            print("Pulling code from a form", file=sys.stderr)
+            if isinstance(src, bytes):
+                source = src.decode("utf-8")
+            else:
+                source = src
+
+    print("Source code: ", source, file=sys.stderr)
+
     source_files = {
-        "single.c": request.data
+        "single.c": source
     }
+
     return handle_c(action, source_files, "single.c")
 
 
@@ -185,6 +241,8 @@ def handle_c(action, source_files, app_filename):
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
 
+    print("Results: " + out, file=sys.stderr)
+
     if err is None:
         err = ''
 
@@ -198,14 +256,20 @@ def handle_c(action, source_files, app_filename):
     data = {
         "success": success,
         "compiler-output": out,
-        "compiler-error": err
+        "compiler-error": err.decode()
     }
 
     if action != "COMPILE" and success:
-        data['binary'] = base64binary
+        data['binary'] = base64binary.decode('utf-8')
         data['extension'] = extension
 
-    return Response(json.dumps(data), 200, mimetype="application/json")
+    for k, v in data.items():
+        print("Data key: ", k, file=sys.stderr)
+        print("Data type: ", type(data[k]), file=sys.stderr)
+
+    resp = Response(json.dumps(data), 200, mimetype="application/json")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 
 def s3_load_init_binary():
