@@ -6,7 +6,8 @@
 ## PyCharm
 #################
 .idea
-virtenv
+venv/
+virtenv/
 
 #################
 ## Eclipse

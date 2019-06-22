@@ -1,40 +1,107 @@
-from ConfigParser import ConfigParser
+#  Copyright (c) 2019 Parallax Inc.
+#
+#  Permission is hereby granted, free of charge, to any person obtaining
+#  a copy of this software and associated documentation files (the
+#  “Software”), to deal in the Software without restriction, including
+#  without limitation the rights to use, copy,  modify, merge, publish,
+#  distribute, sublicense, and/or sell copies of the Software, and to
+#  permit persons to whom the Software is furnished to do so, subject
+#  to the following conditions:
+#
+#       The above copyright notice and this permission notice shall be
+#       included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+#  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFINGEMENT.
+#  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+#  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+#  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+#  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+#
+
+# from ConfigParser import ConfigParser
 
 import json
 from flask import Flask, Response, request
-from os.path import expanduser, isfile
+from flask_cors import CORS
+
+import logging
+from logging.handlers import RotatingFileHandler
+
+# from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
 import base64
+import sys
 
 __author__ = 'Michel'
 
-__version__ = "1.1.1"
+version = "1.3.0"
+
+handler = RotatingFileHandler('cloudcompiler.log')
+handler.setLevel(logging.INFO)
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s '
+    '[in %(pathname)s:%(lineno)d]'
+))
 
 
 app = Flask(__name__)
+app.logger.addHandler(handler)
 
-
-# ------------------------------------- Util functions and classes -------------------------------------------
-class FakeSecHead(object):
-    def __init__(self, fp):
-        self.fp = fp
-        self.sec_head = '[section]\n'
-
-    def readline(self):
-        if self.sec_head:
-            try:
-                return self.sec_head
-            finally:
-                self.sec_head = None
-        else:
-            return self.fp.readline()
+# Enable CORS
+CORS(app)
 
 
 # ----------------------------------------------------------------------- Spin --------------------------------
+
+# Ping the REST server for signs of life
+@app.route('/ping', methods=['GET'])
+def ping():
+    app.logger.info('API: ping')
+    return Response(
+        "{\"result\": \"pong\"}",
+        200,
+        mimetype="application/json")
+
+
+@app.route('/version', methods=['GET'])
+def get_version():
+    app.logger.info('API: version')
+
+    if app.env == 'development':
+        data = {
+            "success": True,
+            "result": "Debugger enabled, library version is not available"
+        }
+        return Response(json.dumps(data), 500, mimetype="application/json")
+
+    # Get version from version.txt file
+    file = open("/opt/parallax/simple-libraries/version.txt", "r")
+
+    if file.mode == 'r':
+        lib_version = file.read()
+
+        data = {
+            "success": True,
+            "simpleLibraryVersion": lib_version.strip(),
+            "applicationVersion": version
+        }
+
+        return Response(json.dumps(data), 200, mimetype="application/json")
+    else:
+        return Response(
+            "{\"result\": \"fail\"}",
+            400,
+            mimetype="application/json")
+
+
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action):
+    app.logger.info("API: SingleSpin")
     source_files = {
         "single.spin": request.data
     }
@@ -43,6 +110,7 @@ def single_spin(action):
 
 @app.route('/multiple/spin/<action>', methods=['POST'])
 def multiple_spin(action):
+    app.logger.info("API: MultiSpin")
     main_file = request.form.get("main_file", None)
     files = {}
     for file_name in request.files.keys():
@@ -98,14 +166,34 @@ def handle_spin(action, source_files, app_filename):
 # ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
+    logging.info("API: SinglePropC")
+
+    src = request.data
+    source = ""
+
+    if len(src) > 0:
+        if not (not isinstance(src, bytes) and not isinstance(src, bytearray)):
+            source = src.decode("utf-8")
+        else:
+            source = src
+    else:
+        src = request.form.get('code')
+        if len(src) > 0:
+            if isinstance(src, bytes):
+                source = src.decode("utf-8")
+            else:
+                source = src
+
     source_files = {
-        "single.c": request.data
+        "single.c": source
     }
+
     return handle_c(action, source_files, "single.c")
 
 
 @app.route('/multiple/prop-c/<action>', methods=['POST'])
 def multiple_c(action):
+    logging.info("API: MultiPropC")
     main_file = request.form.get("main_file", None)
     files = {}
     for file_name in request.files.keys():
@@ -164,6 +252,8 @@ def handle_c(action, source_files, app_filename):
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
 
+    print("Results: " + out, file=sys.stderr)
+
     if err is None:
         err = ''
 
@@ -177,14 +267,20 @@ def handle_c(action, source_files, app_filename):
     data = {
         "success": success,
         "compiler-output": out,
-        "compiler-error": err
+        "compiler-error": err.decode()
     }
 
     if action != "COMPILE" and success:
-        data['binary'] = base64binary
+        data['binary'] = base64binary.decode('utf-8')
         data['extension'] = extension
 
-    return Response(json.dumps(data), 200, mimetype="application/json")
+    for k, v in data.items():
+        print("Data key: ", k, file=sys.stderr)
+        print("Data type: ", type(data[k]), file=sys.stderr)
+
+    resp = Response(json.dumps(data), 200, mimetype="application/json")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 
 def s3_load_init_binary():
@@ -195,25 +291,15 @@ def s3_load_init_binary():
     return encoded
 
 
-# --------------------------------------- Defaults and compiler initialization --------------------------------
+# ---------- Defaults and compiler initialization ----------
 defaults = {
     'c-compiler': '/opt/parallax/bin/propeller-elf-gcc',
-    'c-libraries': '/opt/simple-libraries',
+    'c-libraries': '/opt/parallax/simple-libraries',
     'spin-compiler': '/opt/parallax/bin/openspin',
     'spin-libraries': '/opt/parallax/spin'
 }
 
-configfile = expanduser("~/cloudcompiler.properties")
-
-if isfile(configfile):
-    configs = ConfigParser(defaults)
-    configs.readfp(FakeSecHead(open(configfile)))
-
-    app_configs = {}
-    for (key, value) in configs.items('section'):
-        app_configs[key] = value
-else:
-    app_configs = defaults
+app_configs = defaults
 
 compilers = {
     "SPIN": SpinCompiler(app_configs),
@@ -222,23 +308,20 @@ compilers = {
 
 actions = ["COMPILE", "BIN", "EEPROM"]
 
+# -----------------     Logging     --------------------
+print("DEBUG IS: $s", app.debug)
 
-# -------------------------------------------- Logging ---------------------------------------------------------
-if not app.debug:
-    import logging
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler('cloudcompiler.log')
-    file_handler.setLevel(logging.WARNING)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]'
-    ))
-    app.logger.addHandler(file_handler)
+# if not app.debug:
+#    handler = RotatingFileHandler('cloudcompiler.log')
+#    handler.setLevel(logging.INFO)
+#    handler.setFormatter(logging.Formatter(
+#        '%(asctime)s %(levelname)s: %(message)s '
+#        '[in %(pathname)s:%(lineno)d]'
+#    ))
+#
+#    app.logger.addHandler(handler)
 
 
-# ----------------------------------------------- Development server -------------------------------------------
+# --------------     Development server     --------------
 if __name__ == '__main__':
-    app.debug = False
-    app.run(host='0.0.0.0')
-
-
+    app.run(host='0.0.0.0', debug=True)
