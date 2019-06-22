@@ -27,6 +27,9 @@ import json
 from flask import Flask, Response, request
 from flask_cors import CORS
 
+import logging
+from logging.handlers import RotatingFileHandler
+
 # from os.path import expanduser, isfile
 
 from SpinCompiler import SpinCompiler
@@ -36,32 +39,29 @@ import sys
 
 __author__ = 'Michel'
 
-version = "1.2.0"
+version = "1.3.0"
+
+handler = RotatingFileHandler('cloudcompiler.log')
+handler.setLevel(logging.INFO)
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s '
+    '[in %(pathname)s:%(lineno)d]'
+))
+
+
 app = Flask(__name__)
+app.logger.addHandler(handler)
+
+# Enable CORS
 CORS(app)
 
-
-# ------------------------------------- Util functions and classes -------------------------------------------
-# class FakeSecHead(object):
-#     def __init__(self, fp):
-#         self.fp = fp
-#         self.sec_head = '[section]\n'
-#
-#     def readline(self):
-#         if self.sec_head:
-#             try:
-#                 return self.sec_head
-#             finally:
-#                 self.sec_head = None
-#         else:
-#             return self.fp.readline()
-#
 
 # ----------------------------------------------------------------------- Spin --------------------------------
 
 # Ping the REST server for signs of life
 @app.route('/ping', methods=['GET'])
 def ping():
+    app.logger.info('API: ping')
     return Response(
         "{\"result\": \"pong\"}",
         200,
@@ -70,14 +70,28 @@ def ping():
 
 @app.route('/version', methods=['GET'])
 def get_version():
+    app.logger.info('API: version')
+
+    if app.env == 'development':
+        data = {
+            "success": True,
+            "result": "Debugger enabled, library version is not available"
+        }
+        return Response(json.dumps(data), 500, mimetype="application/json")
+
     # Get version from version.txt file
     file = open("/opt/parallax/simple-libraries/version.txt", "r")
+
     if file.mode == 'r':
         lib_version = file.read()
-        return Response(
-            "{ \"result\": \"success\", \"version\": \"" + lib_version.strip() + "\"}",
-            200,
-            mimetype="application/json")
+
+        data = {
+            "success": True,
+            "simpleLibraryVersion": lib_version.strip(),
+            "applicationVersion": version
+        }
+
+        return Response(json.dumps(data), 200, mimetype="application/json")
     else:
         return Response(
             "{\"result\": \"fail\"}",
@@ -87,6 +101,7 @@ def get_version():
 
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action):
+    app.logger.info("API: SingleSpin")
     source_files = {
         "single.spin": request.data
     }
@@ -95,6 +110,7 @@ def single_spin(action):
 
 @app.route('/multiple/spin/<action>', methods=['POST'])
 def multiple_spin(action):
+    app.logger.info("API: MultiSpin")
     main_file = request.form.get("main_file", None)
     files = {}
     for file_name in request.files.keys():
@@ -150,29 +166,23 @@ def handle_spin(action, source_files, app_filename):
 # ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
-
-    print("===========================================================")
+    logging.info("API: SinglePropC")
 
     src = request.data
     source = ""
 
     if len(src) > 0:
         if not (not isinstance(src, bytes) and not isinstance(src, bytearray)):
-            print("Original source: ", src, file=sys.stderr)
-            print("Converting byte array to string", file=sys.stderr)
             source = src.decode("utf-8")
         else:
             source = src
     else:
         src = request.form.get('code')
         if len(src) > 0:
-            print("Pulling code from a form", file=sys.stderr)
             if isinstance(src, bytes):
                 source = src.decode("utf-8")
             else:
                 source = src
-
-    print("Source code: ", source, file=sys.stderr)
 
     source_files = {
         "single.c": source
@@ -183,6 +193,7 @@ def single_c(action):
 
 @app.route('/multiple/prop-c/<action>', methods=['POST'])
 def multiple_c(action):
+    logging.info("API: MultiPropC")
     main_file = request.form.get("main_file", None)
     files = {}
     for file_name in request.files.keys():
@@ -288,16 +299,6 @@ defaults = {
     'spin-libraries': '/opt/parallax/spin'
 }
 
-# configfile = expanduser("~/cloudcompiler.properties")
-#
-# if isfile(configfile):
-#     configs = ConfigParser(defaults)
-#     configs.readfp(FakeSecHead(open(configfile)))
-#
-#     app_configs = {}
-#     for (key, value) in configs.items('section'):
-#         app_configs[key] = value
-# else:
 app_configs = defaults
 
 compilers = {
@@ -307,21 +308,20 @@ compilers = {
 
 actions = ["COMPILE", "BIN", "EEPROM"]
 
+# -----------------     Logging     --------------------
+print("DEBUG IS: $s", app.debug)
 
-# -------------------------------------------- Logging ---------------------------------------------------------
-if not app.debug:
-    import logging
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler('cloudcompiler.log')
-    file_handler.setLevel(logging.WARNING)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]'
-    ))
-    app.logger.addHandler(file_handler)
+# if not app.debug:
+#    handler = RotatingFileHandler('cloudcompiler.log')
+#    handler.setLevel(logging.INFO)
+#    handler.setFormatter(logging.Formatter(
+#        '%(asctime)s %(levelname)s: %(message)s '
+#        '[in %(pathname)s:%(lineno)d]'
+#    ))
+#
+#    app.logger.addHandler(handler)
 
 
-# ----------------------------------------------- Development server -------------------------------------------
+# --------------     Development server     --------------
 if __name__ == '__main__':
-    app.debug = False
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)
