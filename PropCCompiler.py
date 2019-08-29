@@ -22,7 +22,6 @@
 #
 
 import base64
-import datetime
 import shutil
 from werkzeug.datastructures import FileStorage
 
@@ -30,7 +29,10 @@ import sys
 import os
 import subprocess
 import re
+
 from tempfile import NamedTemporaryFile, mkdtemp
+# from cloudcompiler import app
+import cloudcompiler
 
 __author__ = 'Michel'
 
@@ -79,7 +81,8 @@ class PropCCompiler:
         for filename in source_files:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
-                    print("Source file is of type: ", type(source_files[filename]), file=sys.stderr)
+                    cloudcompiler.app.logger.info("Source file is of type: %s",
+                                                  type(source_files[filename]))
                     if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
                     elif isinstance(source_files[filename], bytes):
@@ -139,12 +142,11 @@ class PropCCompiler:
         err = None
 
         if success:
-            print("Compiler command line arguments:", file=sys.stderr)
-            print("  Source directory: ", source_directory, file=sys.stderr)
-            print("  Action          : ", action, file=sys.stderr)
-            print("  App File Name   : ", app_filename, file=sys.stderr)
-            print("  Library order   : ", library_order, file=sys.stderr)
-            print("  External libs   : ", external_libraries_info, file=sys.stderr)
+            cloudcompiler.app.logger.info("Source directory: %s", source_directory)
+            cloudcompiler.app.logger.info("Action          : %s", action)
+            cloudcompiler.app.logger.info("App File Name   : %s", app_filename)
+            cloudcompiler.app.logger.info("Library order   : %s", library_order)
+            cloudcompiler.app.logger.info("External libs   : %s", external_libraries_info)
 
             # Compile binary
             (bin_success, base64binary, out, err) = self.compile_binary(
@@ -194,7 +196,6 @@ class PropCCompiler:
         # three header files can consume 200ms in this loop.
         # ---------------------------------------------------------------------
         for root, subFolders, files in os.walk(self.configs['c-libraries']):
-            print(datetime.datetime.now(), " Looking for library: ", library + '.h', file=sys.stderr)
             if library + '.h' in files:
                 if library in root[root.rindex('/') + 1:]:
                     library_present = True
@@ -223,10 +224,13 @@ class PropCCompiler:
             return False, 'Library %s not found' % library
 
     def compile_lib(self, working_directory, source_file, target_filename, libraries):
-        print('%s -> Compiling %s into %s' % (working_directory, source_file, target_filename), file=sys.stderr)
+        cloudcompiler.app.logger.info("Working directory: %s", working_directory)
+        cloudcompiler.app.logger.info("Compiling source file: %s to target file: %s",
+                                      source_file, target_filename)
 
         executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
-        print(' '.join(executing_data), file=sys.stderr)
+
+        # print(' '.join(executing_data), file=sys.stderr)
 
         try:
             process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
@@ -251,7 +255,7 @@ class PropCCompiler:
         binary_file.close()
 
         executing_data = self.create_executing_data(source_file, binary_file.name, binaries, libraries)  # build execution command
-        print(' '.join(executing_data))
+        # print(' '.join(executing_data))
 
         try:
             process = subprocess.Popen(
