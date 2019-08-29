@@ -81,12 +81,16 @@ class PropCCompiler:
         for filename in source_files:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
-                    cloudcompiler.app.logger.info("Source file is of type: %s",
-                                                  type(source_files[filename]))
+                    cloudcompiler.app.logger.debug(
+                        "Source file is of type: %s",
+                        type(source_files[filename]))
+
                     if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
+
                     elif isinstance(source_files[filename], bytes):
                         file_content = source_files[filename].decode()
+
                     elif isinstance(source_files[filename], FileStorage):
                         file_content = source_files[filename].stream.read()
 
@@ -142,11 +146,11 @@ class PropCCompiler:
         err = None
 
         if success:
-            cloudcompiler.app.logger.info("Source directory: %s", source_directory)
-            cloudcompiler.app.logger.info("Action          : %s", action)
-            cloudcompiler.app.logger.info("App File Name   : %s", app_filename)
-            cloudcompiler.app.logger.info("Library order   : %s", library_order)
-            cloudcompiler.app.logger.info("External libs   : %s", external_libraries_info)
+            cloudcompiler.app.logger.debug("Source directory: %s", source_directory)
+            cloudcompiler.app.logger.debug("Action          : %s", action)
+            cloudcompiler.app.logger.debug("App File Name   : %s", app_filename)
+            cloudcompiler.app.logger.debug("Library order   : %s", library_order)
+            cloudcompiler.app.logger.debug("External libs   : %s", external_libraries_info)
 
             # Compile binary
             (bin_success, base64binary, out, err) = self.compile_binary(
