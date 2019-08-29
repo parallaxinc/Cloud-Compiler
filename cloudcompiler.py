@@ -25,12 +25,13 @@
 
 import json
 import base64
-import logging
 import sys
+import logging
+from logging import StreamHandler
 
 from flask import Flask, Response, request
 from flask_cors import CORS
-from logging import StreamHandler
+
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
 
@@ -38,24 +39,16 @@ __author__ = 'Michel'
 
 version = "1.3.2"
 
-
-handler = StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s '
-    '[in %(pathname)s:%(lineno)d]'
-))
-
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.INFO)
-log.addHandler(handler)
+# Set up basic logging
+logging.basicConfig(
+    filename='/var/log/supervisor/example.log',
+    level=logging.DEBUG,
+    format='%(asctime)s $(levelname)s %(name)s %(threadName)s : $(message)s')
 
 app = Flask(__name__)
-# app.logger.addHandler(handler)
 
 # Enable CORS
 CORS(app)
-
 
 # ----------------------------------------------------------------------- Spin --------------------------------
 
@@ -167,7 +160,7 @@ def handle_spin(action, source_files, app_filename):
 # ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
-    logging.info("API: SinglePropC")
+    app.logger.info("API: SinglePropC")
 
     src = request.data
     source = ""
@@ -194,7 +187,7 @@ def single_c(action):
 
 @app.route('/multiple/prop-c/<action>', methods=['POST'])
 def multiple_c(action):
-    logging.info("API: MultiPropC")
+    app.logger.info("API: MultiPropC")
     main_file = request.form.get("main_file", None)
     files = {}
     for file_name in request.files.keys():
@@ -252,7 +245,8 @@ def handle_c(action, source_files, app_filename):
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
-    app.logger.info("Results: %s", out)
+
+    app.logger.info("Results: %s", out.replace('\n', ' : '))
 
     if err is None:
         err = ''
@@ -314,12 +308,10 @@ if not app.debug:
     handler = StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
+        '%(asctime)s %(levelname)s %(name)s %(threadName)s:%(message)s '
         '[in %(pathname)s:%(lineno)d]'
     ))
-
     app.logger.addHandler(handler)
-
 
 # --------------     Development server     --------------
 if __name__ == '__main__':
