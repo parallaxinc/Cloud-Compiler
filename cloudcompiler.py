@@ -24,33 +24,34 @@
 # from ConfigParser import ConfigParser
 
 import json
+import base64
+import logging
+import sys
+
 from flask import Flask, Response, request
 from flask_cors import CORS
-
-import logging
-from logging.handlers import RotatingFileHandler
-
-# from os.path import expanduser, isfile
-
+from logging import StreamHandler
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
-import base64
-import sys
 
 __author__ = 'Michel'
 
-version = "1.3.0"
+version = "1.3.2"
 
-handler = RotatingFileHandler('cloudcompiler.log')
+
+handler = StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
 handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s '
     '[in %(pathname)s:%(lineno)d]'
 ))
 
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.INFO)
+log.addHandler(handler)
 
 app = Flask(__name__)
-app.logger.addHandler(handler)
+# app.logger.addHandler(handler)
 
 # Enable CORS
 CORS(app)
@@ -251,8 +252,7 @@ def handle_c(action, source_files, app_filename):
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
-
-    print("Results: " + out, file=sys.stderr)
+    app.logger.info("Results: %s", out)
 
     if err is None:
         err = ''
@@ -275,8 +275,7 @@ def handle_c(action, source_files, app_filename):
         data['extension'] = extension
 
     for k, v in data.items():
-        print("Data key: ", k, file=sys.stderr)
-        print("Data type: ", type(data[k]), file=sys.stderr)
+        app.logger.info("Data key: %s. Data type: %s", k, type(data[k]))
 
     resp = Response(json.dumps(data), 200, mimetype="application/json")
     resp.headers['Access-Control-Allow-Origin'] = '*'
@@ -309,17 +308,17 @@ compilers = {
 actions = ["COMPILE", "BIN", "EEPROM"]
 
 # -----------------     Logging     --------------------
-print("DEBUG IS: $s", app.debug)
+app.logger.info("DEBUG: %s", app.debug)
 
-# if not app.debug:
-#    handler = RotatingFileHandler('cloudcompiler.log')
-#    handler.setLevel(logging.INFO)
-#    handler.setFormatter(logging.Formatter(
-#        '%(asctime)s %(levelname)s: %(message)s '
-#        '[in %(pathname)s:%(lineno)d]'
-#    ))
-#
-#    app.logger.addHandler(handler)
+if not app.debug:
+    handler = StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s '
+        '[in %(pathname)s:%(lineno)d]'
+    ))
+
+    app.logger.addHandler(handler)
 
 
 # --------------     Development server     --------------
