@@ -230,6 +230,7 @@ def handle_c(action, source_files, app_filename):
     # Look for a specific string in the source file (single.c)
     # --------------------------------------------------------------
     if '#pragma load_default_scribbler_binary' in source_files['single.c']:
+        app.logger.info("Sending Scribbler Init library")
         out = "Loading S3 Demo App..."
         data = {
             "success": True,
@@ -242,6 +243,8 @@ def handle_c(action, source_files, app_filename):
             data['extension'] = 'elf'
 
         return Response(json.dumps(data), 200, mimetype="application/json")
+
+    app.logger.info("Compiling %s for type %s", app_filename, action)
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
@@ -269,7 +272,7 @@ def handle_c(action, source_files, app_filename):
         data['extension'] = extension
 
     for k, v in data.items():
-        app.logger.info("Data key: %s. Data type: %s", k, type(data[k]))
+        app.logger.debug("Data key: %s. Data type: %s", k, type(data[k]))
 
     resp = Response(json.dumps(data), 200, mimetype="application/json")
     resp.headers['Access-Control-Allow-Origin'] = '*'
