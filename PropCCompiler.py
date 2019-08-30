@@ -205,9 +205,11 @@ class PropCCompiler:
                     library_present = True
                     if library + '.c' in files:
                         with open(root + '/' + library + '.c') as library_code:
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.c')
                             includes = self.parse_includes(library_code.read())
                     else:
                         with open(root + '/' + library + '.h') as header_code:
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.h')
                             includes = self.parse_includes(header_code.read())
 
                     libraries[library] = {
