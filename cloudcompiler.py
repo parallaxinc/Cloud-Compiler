@@ -34,10 +34,10 @@ from flask_cors import CORS
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
+from version import version
 
 __author__ = 'Michel'
 
-version = "1.3.4"
 
 # Set up basic logging
 logging.basicConfig(
