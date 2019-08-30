@@ -37,7 +37,7 @@ from PropCCompiler import PropCCompiler
 
 __author__ = 'Michel'
 
-version = "1.3.2"
+version = "1.3.4"
 
 # Set up basic logging
 logging.basicConfig(

@@ -25,13 +25,11 @@ import base64
 import shutil
 from werkzeug.datastructures import FileStorage
 
-import sys
 import os
 import subprocess
 import re
 
 from tempfile import NamedTemporaryFile, mkdtemp
-# from cloudcompiler import app
 import cloudcompiler
 
 __author__ = 'Michel'
@@ -81,6 +79,7 @@ class PropCCompiler:
         for filename in source_files:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
+
                     cloudcompiler.app.logger.debug(
                         "Source file is of type: %s",
                         type(source_files[filename]))
@@ -204,10 +203,12 @@ class PropCCompiler:
                 if library in root[root.rindex('/') + 1:]:
                     library_present = True
                     if library + '.c' in files:
-                        with open(root + '/' + library + '.c') as library_code:
+                        with open(root + '/' + library + '.c', encoding="latin-1") as library_code:
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.c')
                             includes = self.parse_includes(library_code.read())
                     else:
-                        with open(root + '/' + library + '.h') as header_code:
+                        with open(root + '/' + library + '.h', encoding="latin-1") as header_code:
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.h')
                             includes = self.parse_includes(header_code.read())
 
                     libraries[library] = {
@@ -229,8 +230,7 @@ class PropCCompiler:
 
     def compile_lib(self, working_directory, source_file, target_filename, libraries):
         cloudcompiler.app.logger.info("Working directory: %s", working_directory)
-        cloudcompiler.app.logger.info("Compiling source file: %s to target file: %s",
-                                      source_file, target_filename)
+        cloudcompiler.app.logger.info("Compiling source file: %s to target file: %s", source_file, target_filename)
 
         executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
 
