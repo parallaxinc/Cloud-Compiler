@@ -30,7 +30,7 @@ import subprocess
 import re
 
 from tempfile import NamedTemporaryFile, mkdtemp
-from cloudcompiler import app
+import cloudcompiler
 
 __author__ = 'Michel'
 
@@ -80,7 +80,7 @@ class PropCCompiler:
             if filename.endswith(".c"):
                 with open(source_directory + "/" + filename, mode='w') as source_file:
 
-                    app.logger.debug(
+                    cloudcompiler.app.logger.debug(
                         "Source file is of type: %s",
                         type(source_files[filename]))
 
@@ -145,11 +145,11 @@ class PropCCompiler:
         err = None
 
         if success:
-            app.logger.debug("Source directory: %s", source_directory)
-            app.logger.debug("Action          : %s", action)
-            app.logger.debug("App File Name   : %s", app_filename)
-            app.logger.debug("Library order   : %s", library_order)
-            app.logger.debug("External libs   : %s", external_libraries_info)
+            cloudcompiler.app.logger.debug("Source directory: %s", source_directory)
+            cloudcompiler.app.logger.debug("Action          : %s", action)
+            cloudcompiler.app.logger.debug("App File Name   : %s", app_filename)
+            cloudcompiler.app.logger.debug("Library order   : %s", library_order)
+            cloudcompiler.app.logger.debug("External libs   : %s", external_libraries_info)
 
             # Compile binary
             (bin_success, base64binary, out, err) = self.compile_binary(
@@ -204,11 +204,11 @@ class PropCCompiler:
                     library_present = True
                     if library + '.c' in files:
                         with open(root + '/' + library + '.c', encoding="latin-1") as library_code:
-                            app.logger.info("Parsing '%s'", root + '/' + library + '.c')
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.c')
                             includes = self.parse_includes(library_code.read())
                     else:
                         with open(root + '/' + library + '.h', encoding="latin-1") as header_code:
-                            app.logger.info("Parsing '%s'", root + '/' + library + '.h')
+                            cloudcompiler.app.logger.info("Parsing '%s'", root + '/' + library + '.h')
                             includes = self.parse_includes(header_code.read())
 
                     libraries[library] = {
@@ -229,8 +229,8 @@ class PropCCompiler:
             return False, 'Library %s not found' % library
 
     def compile_lib(self, working_directory, source_file, target_filename, libraries):
-        app.logger.info("Working directory: %s", working_directory)
-        app.logger.info("Compiling source file: %s to target file: %s", source_file, target_filename)
+        cloudcompiler.app.logger.info("Working directory: %s", working_directory)
+        cloudcompiler.app.logger.info("Compiling source file: %s to target file: %s", source_file, target_filename)
 
         executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
 
