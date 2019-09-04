@@ -5,12 +5,20 @@ Cloud compiler for compiling Parallax Propeller Spin and C projects.
 ### Prerequisite
 
 #### Python
-This application is written for Python 2.7, on a unix based system (bsd, linux, Mac) although it may may work on Windows but it is not supported.
-Official testing is done on a headless Debian 8.1.
+This application is written for Python >= 3.6, on a unix based system (bsd, linux, Mac) although it may may work on Windows but it is not supported.
 
 Required python libraries, available for installation using easy_install or pip:
 
-- [flask](http://flask.pocoo.org/docs/0.10/installation/)
+* [click 7.0](https://pypi.org/project/click/)
+* [flask 1.1.1](https://pypi.org/project/Flask/)
+* [flask-cors 3.0.8](https://pypi.org/project/Flask-Cors/)
+* [itsdangerous 1.1.0](https://pypi.org/project/itsdangerous/)
+* [Jinja2 2.10.1](https://pypi.org/project/Jinja2/)
+* [markupsafe 1.1.1](https://pypi.org/project/MarkupSafe/)
+* [sentry-sdk==0.11.2](https://pypi.org/project/sentry-sdk/)
+* [supervisor 4.0.4](https://pypi.org/project/supervisor/)
+* [uWSGI 2.0.18](https://pypi.org/project/uWSGI/)
+* [Werkzeug==0.15.5](https://pypi.org/project/Werkzeug/)
 
 #### Propeller C compiler
 You will need to have the Propeller C compiler installed. 
@@ -48,40 +56,3 @@ For example:
 c-libraries = /home/compiler/simple-libraries
 ```
 
-
-## Performance
-
-Initial test using very simple spin and c programs have been conducted.
-
-Because these have been done using a virtualized system its not 100% clear what the server specs are but some estimations:
-
-- Debian 8.2 without graphical layer using VirtualBox 5.0.3
-- Host pc i7-2600 @ 3.40GHz with 1 processor assigned to the VirtualBox instance
-- 16GB memory with 2GB assigned to the VirtualBox instance
-- Virtual harddisk is 8GB
-
-The load test is configured so that each user makes a request each 5 to 15 seconds.
-
-### 200 users
-
-- Load average: 0.3 - 0.45
-- uwsgi cpu: 24 - 28%
-
-![Locust 200 users](/load\ testing/locust200.png)
-
-### 400 users
-
-- Load average: 0.87 - 0.95
-- uwsgi cpu: 50 - 62%
-
-![Locust 400 users](/load\ testing/locust400.png)
-
-
-### 500 users
-
-- Load average: 1.10 - 1.23
-- uwsgi cpu: 63 - 66%
-
-Once a certain load is reached, response times go up fast.
-
-![Locust 500 users](/load\ testing/locust500.png)

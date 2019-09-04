@@ -34,10 +34,10 @@ from flask_cors import CORS
 
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
+from version import version
 
 __author__ = 'Michel'
 
-version = "1.3.4"
 
 # Set up basic logging
 logging.basicConfig(
@@ -55,7 +55,7 @@ CORS(app)
 # Ping the REST server for signs of life
 @app.route('/ping', methods=['GET'])
 def ping():
-    app.logger.info('API: ping')
+    app.logger.debug('API: ping')
     return Response(
         "{\"result\": \"pong\"}",
         200,
@@ -230,6 +230,7 @@ def handle_c(action, source_files, app_filename):
     # Look for a specific string in the source file (single.c)
     # --------------------------------------------------------------
     if '#pragma load_default_scribbler_binary' in source_files['single.c']:
+        app.logger.info("Sending Scribbler Init library")
         out = "Loading S3 Demo App..."
         data = {
             "success": True,
@@ -242,6 +243,8 @@ def handle_c(action, source_files, app_filename):
             data['extension'] = 'elf'
 
         return Response(json.dumps(data), 200, mimetype="application/json")
+
+    app.logger.info("Compiling %s for type %s", app_filename, action)
 
     # call compiler and prepare return data
     (success, base64binary, extension, out, err) = compilers["PROP-C"].compile(action, source_files, app_filename)
@@ -269,7 +272,7 @@ def handle_c(action, source_files, app_filename):
         data['extension'] = extension
 
     for k, v in data.items():
-        app.logger.info("Data key: %s. Data type: %s", k, type(data[k]))
+        app.logger.debug("Data key: %s. Data type: %s", k, type(data[k]))
 
     resp = Response(json.dumps(data), 200, mimetype="application/json")
     resp.headers['Access-Control-Allow-Origin'] = '*'
