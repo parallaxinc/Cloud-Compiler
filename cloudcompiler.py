@@ -55,7 +55,7 @@ CORS(app)
 # Ping the REST server for signs of life
 @app.route('/ping', methods=['GET'])
 def ping():
-    app.logger.info('API: ping')
+    app.logger.debug('API: ping')
     return Response(
         "{\"result\": \"pong\"}",
         200,

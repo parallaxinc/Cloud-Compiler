@@ -1,9 +1,14 @@
 
 
-version = "1.3.5"
+version = "1.3.6"
 
 # Change Log
 #
+# 1.3.6
+# Add missing s3_init binary.
+# Change 'ping' endpoint logging to debug to reduce log noise.
+
+# (1.3.5)
 # Package updates
 #
 # Flask==1.0.2 => Flask==1.1.1
