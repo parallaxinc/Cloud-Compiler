@@ -1,8 +1,12 @@
 
 
-version = "1.3.6"
+version = "1.3.7"
 
 # Change Log
+#
+# 1.3.7
+# Correct an issue where json was asked to encode a byte array,
+# which it cannot do natively.
 #
 # 1.3.6
 # Add missing s3_init binary.

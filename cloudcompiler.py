@@ -230,16 +230,17 @@ def handle_c(action, source_files, app_filename):
     # Look for a specific string in the source file (single.c)
     # --------------------------------------------------------------
     if '#pragma load_default_scribbler_binary' in source_files['single.c']:
-        app.logger.info("Sending Scribbler Init library")
-        out = "Loading S3 Demo App..."
+        app.logger.info("Invoking Scribbler Init library download")
+
         data = {
             "success": True,
-            "compiler-output": out,
+            "compiler-output": "Loading S3 Demo App...",
             "compiler-error": ''
         }
 
         if action != "COMPILE":
-            data['binary'] = s3_load_init_binary()
+            app.logger.info("Sending Scribbler Init library")
+            data['binary'] = s3_load_init_binary().decode('utf-8')
             data['extension'] = 'elf'
 
         return Response(json.dumps(data), 200, mimetype="application/json")
@@ -281,9 +282,12 @@ def handle_c(action, source_files, app_filename):
 
 def s3_load_init_binary():
     with open('scribbler_default.binary', 'rb') as f:
+        # Encode the binary file contents to base64 byte array
         encoded = base64.b64encode(f.read())
 
     f.close()
+
+    # Return a string representation of the byte array
     return encoded
 
 
