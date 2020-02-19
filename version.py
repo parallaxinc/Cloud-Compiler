@@ -3,6 +3,10 @@
 version = "1.3.8"
 
 # Change Log
+# 1.3.8
+# Correct issue where writing source and header files to local
+# storage was failing if the input bytestream contained an
+# extended character, such as a degree symbol.
 #
 # 1.3.7
 # Correct an issue where json was asked to encode a byte array,
