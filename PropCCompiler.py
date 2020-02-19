@@ -56,7 +56,7 @@ class PropCCompiler:
         # Header files
         for filename in source_files:
             if filename.endswith(".h"):
-                with open(source_directory + "/" + filename, mode='w') as header_file:
+                with open(source_directory + "/" + filename, mode='w', encoding='utf-8') as header_file:
                     if isinstance(source_files[filename], str):
                         file_content = source_files[filename]
                     elif isinstance(source_files[filename], FileStorage):
@@ -78,7 +78,7 @@ class PropCCompiler:
         # their contents to physical files that the compiler can see.
         for filename in source_files:
             if filename.endswith(".c"):
-                with open(source_directory + "/" + filename, mode='w') as source_file:
+                with open(source_directory + "/" + filename, mode='w', encoding='utf-8') as source_file:
 
                     cloudcompiler.app.logger.debug(
                         "Source file is of type: %s",
