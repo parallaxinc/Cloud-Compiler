@@ -1,8 +1,12 @@
 
 
-version = "1.3.8"
+version = "1.3.9"
 
 # Change Log
+# 1.3.9
+# Update to Simple Library to accommodate a small change in the
+# LIS3DH library initialization.
+#
 # 1.3.8
 # Correct issue where writing source and header files to local
 # storage was failing if the input bytestream contained an
