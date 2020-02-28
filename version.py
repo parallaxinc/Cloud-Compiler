@@ -1,8 +1,15 @@
 
 
-version = "1.3.9"
+version = "1.3.11"
 
 # Change Log
+#
+# 1.3.11
+# Add Simple Library 1.5.152
+#
+# 1.3.10
+# Add Simple Library 1.4.150
+#
 # 1.3.9
 # Update to Simple Library to accommodate a small change in the
 # LIS3DH library initialization.
