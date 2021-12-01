@@ -1,8 +1,12 @@
 
 
-version = "1.3.11"
+version = "1.3.12"
 
 # Change Log
+#
+# 1.3.12
+# Upgrade the supervisor package to address a cgi() function that was removed
+# from Python in version 3.8
 #
 # 1.3.11
 # Add Simple Library 1.5.152
