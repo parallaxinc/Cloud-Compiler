@@ -16,7 +16,7 @@ Required python libraries, available for installation using easy_install or pip:
 * [Jinja2 2.10.1](https://pypi.org/project/Jinja2/)
 * [markupsafe 1.1.1](https://pypi.org/project/MarkupSafe/)
 * [sentry-sdk==0.11.2](https://pypi.org/project/sentry-sdk/)
-* [supervisor 4.0.4](https://pypi.org/project/supervisor/)
+* [supervisor 4.1.0](https://pypi.org/project/supervisor/)
 * [uWSGI 2.0.18](https://pypi.org/project/uWSGI/)
 * [Werkzeug==0.15.5](https://pypi.org/project/Werkzeug/)
 
