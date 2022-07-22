@@ -164,6 +164,13 @@ def single_c(action):
     src = request.data
     source = ""
 
+    if src is None:
+        return Response(json.dumps({
+            "success": False,
+            "message": "Source code is missing",
+            "data": action
+        }), 400, mimetype="application/json")
+
     if len(src) > 0:
         if not (not isinstance(src, bytes) and not isinstance(src, bytearray)):
             source = src.decode("utf-8")
