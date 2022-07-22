@@ -161,7 +161,6 @@ def handle_spin(action, source_files, app_filename):
 @app.route('/single/prop-c/<action>', methods=['POST'])
 def single_c(action):
     app.logger.info("API: SinglePropC")
-
     src = request.data
     source = ""
 
@@ -181,6 +180,9 @@ def single_c(action):
     source_files = {
         "single.c": source
     }
+
+    app.logger.info("Source:")
+    app.logger.info(source_files)
 
     return handle_c(action, source_files, "single.c")
 
