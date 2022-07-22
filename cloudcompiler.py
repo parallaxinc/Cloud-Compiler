@@ -164,7 +164,8 @@ def single_c(action):
     src = request.data
     source = ""
 
-    if src is None:
+    # Fail if no source code provided
+    if src == b'':
         return Response(json.dumps({
             "success": False,
             "message": "Source code is missing",
