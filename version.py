@@ -1,8 +1,11 @@
 
 
-version = "1.3.12"
+version = "1.3.13"
 
 # Change Log
+#
+# 1.3.13
+# Add code to detect when source code is not supplied in the payload
 #
 # 1.3.12
 # Upgrade the supervisor package to address a cgi() function that was removed
