@@ -1,4 +1,4 @@
-#  Copyright (c) 2019 Parallax Inc.
+#  Copyright (c) 2022 Parallax Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining
 #  a copy of this software and associated documentation files (the
@@ -24,15 +24,12 @@
 import base64
 import shutil
 from werkzeug.datastructures import FileStorage
-
 import os
 import subprocess
 import re
 
 from tempfile import NamedTemporaryFile, mkdtemp
 import cloudcompiler
-
-__author__ = 'Michel'
 
 
 class PropCCompiler:
@@ -46,7 +43,7 @@ class PropCCompiler:
             "EEPROM": {"compile-options": [], "extension": ".elf", "return-binary": True}
         }
 
-    def compile(self, action, source_files, app_filename):
+    def compile(self, action: str, source_files: dict, app_filename: str):
         source_directory = mkdtemp()
 
         c_file_data = {}
@@ -161,7 +158,7 @@ class PropCCompiler:
 
             # The data type of out appears to be either a string
             # or an array of bytes.
-            if isinstance(out,str):
+            if isinstance(out, str):
                 compiler_output += out
             else:
                 compiler_output += out.decode()
@@ -187,7 +184,7 @@ class PropCCompiler:
                 if header_file not in external_libraries:
                     external_libraries.append(header_file)
 
-    def find_dependencies(self, library, libraries):
+    def find_dependencies(self, library: str, libraries: dict):
         library_present = False
 
         # ---------------------------------------------------------------------
@@ -228,16 +225,22 @@ class PropCCompiler:
         else:
             return False, 'Library %s not found' % library
 
-    def compile_lib(self, working_directory, source_file, target_filename, libraries):
+    def compile_lib(self, working_directory: str, source_file: str, target_filename: str, libraries: dict):
         cloudcompiler.app.logger.info("Working directory: %s", working_directory)
         cloudcompiler.app.logger.info("Compiling source file: %s to target file: %s", source_file, target_filename)
 
-        executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)  # build execution command
+        # build execution command
+        executing_data = self.create_lib_executing_data(source_file, target_filename, libraries)
 
         # print(' '.join(executing_data), file=sys.stderr)
 
         try:
-            process = subprocess.Popen(executing_data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=working_directory)  # call compile
+            # call compile
+            process = subprocess.Popen(
+                executing_data,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=working_directory)
 
             out, err = process.communicate()
 
@@ -258,7 +261,8 @@ class PropCCompiler:
 
         binary_file.close()
 
-        executing_data = self.create_executing_data(source_file, binary_file.name, binaries, libraries)  # build execution command
+        # build execution command
+        executing_data = self.create_executing_data(source_file, binary_file.name, binaries, libraries)
         # print(' '.join(executing_data))
 
         try:
@@ -302,7 +306,7 @@ class PropCCompiler:
 
         return includes
 
-    def create_lib_executing_data(self, lib_c_file_name, binary_file, descriptors):
+    def create_lib_executing_data(self, lib_c_file_name: str, binary_file: str, descriptors):
         executable = self.configs['c-compiler']
 
         executing_data = [executable, "-I", ".", "-L", "."]
@@ -324,7 +328,7 @@ class PropCCompiler:
 
         return executing_data
 
-    def create_executing_data(self, main_c_file_name, binary_file, binaries, descriptors):
+    def create_executing_data(self, main_c_file_name: str, binary_file: str, binaries: dict, descriptors: dict):
         executable = self.configs['c-compiler']
 
         executing_data = [executable, "-I", ".", "-L", "."]

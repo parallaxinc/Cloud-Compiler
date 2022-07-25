@@ -1,4 +1,4 @@
-#  Copyright (c) 2019 Parallax Inc.
+#  Copyright (c) 2022 Parallax Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining
 #  a copy of this software and associated documentation files (the
@@ -21,22 +21,18 @@
 #
 #
 
-# from ConfigParser import ConfigParser
 
 import json
 import base64
 import sys
 import logging
-from logging import StreamHandler
 
+from logging import StreamHandler
 from flask import Flask, Response, request
 from flask_cors import CORS
-
 from SpinCompiler import SpinCompiler
 from PropCCompiler import PropCCompiler
 from version import version
-
-__author__ = 'Michel'
 
 
 # Set up basic logging
@@ -50,7 +46,6 @@ app = Flask(__name__)
 # Enable CORS
 CORS(app)
 
-# ----------------------------------------------------------------------- Spin --------------------------------
 
 # Ping the REST server for signs of life
 @app.route('/ping', methods=['GET'])
@@ -66,6 +61,7 @@ def ping():
 def get_version():
     app.logger.info('API: version')
 
+    # Return nothing when in development mode.
     if app.env == 'development':
         data = {
             "success": True,
@@ -94,7 +90,7 @@ def get_version():
 
 
 @app.route('/single/spin/<action>', methods=['POST'])
-def single_spin(action):
+def single_spin(action: str):
     app.logger.info("API: SingleSpin")
     source_files = {
         "single.spin": request.data
@@ -103,7 +99,7 @@ def single_spin(action):
 
 
 @app.route('/multiple/spin/<action>', methods=['POST'])
-def multiple_spin(action):
+def multiple_spin(action: str):
     app.logger.info("API: MultiSpin")
     main_file = request.form.get("main_file", None)
     files = {}
@@ -112,54 +108,8 @@ def multiple_spin(action):
     return handle_spin(action, files, main_file)
 
 
-def handle_spin(action, source_files, app_filename):
-    # format data
-    action = action.upper()
-
-    # check data
-    if action not in actions:
-        failure_data = {
-            "success": False,
-            "message": "unknown-action",
-            "data": action
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
-
-    # check filename
-    if app_filename is None:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-filename"
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
-    if app_filename not in source_files:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-file",
-            "data": app_filename
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
-
-    # call compiler and prepare return data
-    (success, base64binary, extension, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
-
-    if err is None:
-        err = ''
-
-    data = {
-        "success": success,
-        "compiler-output": out,
-        "compiler-error": err
-    }
-    if action != "COMPILE" and success:
-        data['binary'] = base64binary
-        data['extension'] = extension
-    return Response(json.dumps(data), 200, mimetype="application/json")
-
-
-# ---------------------------------------------------------------- Propeller C --------------------------------
 @app.route('/single/prop-c/<action>', methods=['POST'])
-def single_c(action):
+def single_c(action: str):
     app.logger.info("API: SinglePropC")
     src = request.data
     source = ""
@@ -196,7 +146,7 @@ def single_c(action):
 
 
 @app.route('/multiple/prop-c/<action>', methods=['POST'])
-def multiple_c(action):
+def multiple_c(action: str):
     app.logger.info("API: MultiPropC")
     main_file = request.form.get("main_file", None)
     files = {}
@@ -205,35 +155,38 @@ def multiple_c(action):
     return handle_c(action, files, main_file)
 
 
-def handle_c(action, source_files, app_filename):
+def handle_spin(action: str, source_files: dict, app_filename: str):
+    # format data
+    action = action.upper()
+
+    error, result = handle_parameter_tests(action, source_files, app_filename)
+    if error:
+        return result
+
+    # call compiler and prepare return data
+    (success, base64binary, extension, out, err) = compilers["SPIN"].compile(action, source_files, app_filename)
+
+    if err is None:
+        err = ''
+
+    data = {
+        "success": success,
+        "compiler-output": out,
+        "compiler-error": err
+    }
+    if action != "COMPILE" and success:
+        data['binary'] = base64binary
+        data['extension'] = extension
+    return Response(json.dumps(data), 200, mimetype="application/json")
+
+
+def handle_c(action: str, source_files: dict, app_filename: str):
     # format to upper case to make string compares easier
     action = action.upper()
 
-    # Verify that we have received a valid action (COMPILE, BIN, EEPROM)
-    if action not in actions:
-        failure_data = {
-            "success": False,
-            "message": "unknown-action",
-            "data": action
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
-
-    # check filename
-    if app_filename is None:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-filename"
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
-
-    # Is the application file name in the list of files
-    if app_filename not in source_files:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-file",
-            "data": app_filename
-        }
-        return Response(json.dumps(failure_data), 400, mimetype="application/json")
+    error, result = handle_parameter_tests(action, source_files, app_filename)
+    if error:
+        return result
 
     # --------------------------------------------------------------
     # Custom hook to trap the S3 Scribbler demo/initialization block
@@ -253,7 +206,10 @@ def handle_c(action, source_files, app_filename):
             data['binary'] = s3_load_init_binary().decode('utf-8')
             data['extension'] = 'elf'
 
-        return Response(json.dumps(data), 200, mimetype="application/json")
+        return Response(
+            json.dumps(data),
+            200,
+            mimetype="application/json")
 
     app.logger.info("Compiling %s for type %s", app_filename, action)
 
@@ -299,6 +255,45 @@ def s3_load_init_binary():
 
     # Return a string representation of the byte array
     return encoded
+
+
+def handle_parameter_tests(action: str, files: dict, filename: str):
+    """
+    Test data passed in from the API
+
+    :param action: The action the compiler is to take
+    :param files: A dictionary of source file names
+    :param filename: The name and optional path of the file containing the source code
+    :return: Response object if a parameter error is detected, else None
+    """
+
+    # Verify that we have received a valid action (COMPILE, BIN, EEPROM)
+    if action not in actions:
+        failure_data = {
+            "success": False,
+            "message": "unknown-action",
+            "data": action
+        }
+        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+
+    # check filename
+    if filename is None:
+        failure_data = {
+            "success": False,
+            "message": "missing-main-filename"
+        }
+        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+
+    # Is the application file name in the list of files
+    if filename not in files:
+        failure_data = {
+            "success": False,
+            "message": "missing-main-file",
+            "data": filename
+        }
+        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+
+    return False, None
 
 
 # ---------- Defaults and compiler initialization ----------

@@ -1,4 +1,4 @@
-#  Copyright (c) 2019 Parallax Inc.
+#  Copyright (c) 2022 Parallax Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining
 #  a copy of this software and associated documentation files (the
@@ -28,8 +28,6 @@ import subprocess
 import shutil
 from tempfile import NamedTemporaryFile, mkdtemp
 from werkzeug.datastructures import FileStorage
-
-__author__ = 'Michel'
 
 
 class SpinCompiler:
