@@ -50,7 +50,6 @@ CORS(app)
 # Ping the REST server for signs of life
 @app.route('/ping', methods=['GET'])
 def ping():
-    app.logger.debug('API: ping')
     return Response(
         "{\"result\": \"pong\"}",
         200,
@@ -59,43 +58,37 @@ def ping():
 
 @app.route('/version', methods=['GET'])
 def get_version():
-    app.logger.info('API: version')
-
     # Return nothing when in development mode.
     if app.env == 'development':
-        data = {
-            "success": True,
-            "result": "Debugger enabled, library version is not available"
-        }
-        return Response(json.dumps(data), 500, mimetype="application/json")
+        return Response(
+            json.dumps({
+                "success": True,
+                "result": "Debugger enabled, library version is not available"
+            }),
+            500, mimetype="application/json")
 
     # Get version from version.txt file
     file = open("/opt/parallax/simple-libraries/version.txt", "r")
 
     if file.mode == 'r':
         lib_version = file.read()
-
-        data = {
-            "success": True,
-            "simpleLibraryVersion": lib_version.strip(),
-            "applicationVersion": version
-        }
-
-        return Response(json.dumps(data), 200, mimetype="application/json")
+        return Response(
+            json.dumps({
+                "success": True,
+                "simpleLibraryVersion": lib_version.strip(),
+                "applicationVersion": version
+                }),
+            200, mimetype="application/json")
     else:
         return Response(
             "{\"result\": \"fail\"}",
-            400,
-            mimetype="application/json")
+            400, mimetype="application/json")
 
 
 @app.route('/single/spin/<action>', methods=['POST'])
 def single_spin(action: str):
     app.logger.info("API: SingleSpin")
-    source_files = {
-        "single.spin": request.data
-    }
-    return handle_spin(action, source_files, "single.spin")
+    return handle_spin(action, {"single.spin": request.data}, "single.spin")
 
 
 @app.route('/multiple/spin/<action>', methods=['POST'])
@@ -269,29 +262,32 @@ def handle_parameter_tests(action: str, files: dict, filename: str):
 
     # Verify that we have received a valid action (COMPILE, BIN, EEPROM)
     if action not in actions:
-        failure_data = {
-            "success": False,
-            "message": "unknown-action",
-            "data": action
-        }
-        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+        return True, Response(
+            json.dumps({
+                "success": False,
+                "message": "unknown-action",
+                "data": action
+                }),
+            400, mimetype="application/json")
 
     # check filename
     if filename is None:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-filename"
-        }
-        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+        return True, Response(
+            json.dumps({
+                "success": False,
+                "message": "missing-main-filename"
+            }),
+            400, mimetype="application/json")
 
     # Is the application file name in the list of files
     if filename not in files:
-        failure_data = {
-            "success": False,
-            "message": "missing-main-file",
-            "data": filename
-        }
-        return True, Response(json.dumps(failure_data), 400, mimetype="application/json")
+        return True, Response(
+            json.dumps({
+                "success": False,
+                "message": "missing-main-file",
+                "data": filename
+            }),
+            400, mimetype="application/json")
 
     return False, None
 

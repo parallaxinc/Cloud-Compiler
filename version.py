@@ -24,11 +24,14 @@
 """
 Application release version history
 """
-version = "1.3.14"
+version = "1.3.15"
 
 # Change Log
 #
-# 1.3.14
+# 1.3.15 (2022-07-25)
+# Update libraries in the requirements.txt to current releases
+#
+# 1.3.14 (2202-07-24)
 # Refactor cloudCompiler route methods
 # Update copyright dates
 #
